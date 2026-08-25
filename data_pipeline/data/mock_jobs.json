@@ -1,0 +1,90 @@
+{
+  "results": [
+    {
+      "id": "mock-001",
+      "title": "Junior Python Developer",
+      "description": "We are looking for a Junior Python Developer to join our engineering team.",
+      "created": "2026-08-20T10:30:00Z",
+      "redirect_url": "https://example.com/jobs/mock-001",
+      "salary_min": 35000,
+      "salary_max": 45000,
+      "salary_is_predicted": false,
+      "contract_time": "full_time",
+      "contract_type": "permanent",
+      "company": {
+        "display_name": "Example Technologies"
+      },
+      "category": {
+        "label": "IT Jobs",
+        "tag": "it-jobs"
+      },
+      "location": {
+        "display_name": "Birmingham, West Midlands",
+        "area": [
+          "UK",
+          "West Midlands",
+          "Birmingham"
+        ]
+      },
+      "latitude": 52.4862,
+      "longitude": -1.8904
+    },
+    {
+      "id": "mock-002",
+      "title": "Data Analyst",
+      "description": "We are seeking a Data Analyst with strong SQL and Python skills.",
+      "created": "2026-08-21T09:15:00Z",
+      "redirect_url": "https://example.com/jobs/mock-002",
+      "salary_min": 30000,
+      "salary_max": 40000,
+      "salary_is_predicted": false,
+      "contract_time": "full_time",
+      "contract_type": "permanent",
+      "company": {
+        "display_name": "Analytics Solutions Ltd"
+      },
+      "category": {
+        "label": "Data Science Jobs",
+        "tag": "data-science-jobs"
+      },
+      "location": {
+        "display_name": "Manchester, Greater Manchester",
+        "area": [
+          "UK",
+          "Greater Manchester",
+          "Manchester"
+        ]
+      },
+      "latitude": 53.4808,
+      "longitude": -2.2426
+    },
+    {
+      "id": "mock-003",
+      "title": "Full Stack Developer",
+      "description": "Full Stack Developer required to work with Python, React and PostgreSQL.",
+      "created": "2026-08-22T14:45:00Z",
+      "redirect_url": "https://example.com/jobs/mock-003",
+      "salary_min": 45000,
+      "salary_max": 60000,
+      "salary_is_predicted": true,
+      "contract_time": "full_time",
+      "contract_type": "permanent",
+      "company": {
+        "display_name": "Tech Systems UK"
+      },
+      "category": {
+        "label": "IT Jobs",
+        "tag": "it-jobs"
+      },
+      "location": {
+        "display_name": "London",
+        "area": [
+          "UK",
+          "London"
+        ]
+      },
+      "latitude": 51.5074,
+      "longitude": -0.1278
+    }
+  ]
+}

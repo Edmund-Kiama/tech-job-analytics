@@ -2,11 +2,10 @@ from typing import Optional
 
 from sqlalchemy import Boolean, Float, Integer, String, Text, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-import os
-from dotenv import load_dotenv 
+from data_pipeline.config import settings 
 
-load_dotenv() 
-DATABASE_URL = os.getenv("DATABASE_URL")  
+
+DATABASE_URL = settings.DATABASE_URL
 engine = create_engine(
     DATABASE_URL,
     echo=True,

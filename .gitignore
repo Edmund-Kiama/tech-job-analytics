@@ -1,5 +1,14 @@
-.venv/
+# Environment
+.env
+
+# Python
 __pycache__/
 *.pyc
-.env
+.venv/
+
+# Database
 *.db
+
+# Frontend
+frontend/node_modules/
+frontend/dist/

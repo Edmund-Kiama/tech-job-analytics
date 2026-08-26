@@ -17,7 +17,13 @@ count = 0
 
 for job in client.iter_jobs(max_pages=3):
     count += 1
-    CommentPrinter(f"Job {count}:\nID: {job.get('id')}\nTitle: {job.get('title')}")
+    CommentPrinter(
+        f"""
+        Job {count}
+        ID: {job.get('id')}
+        Title: {job.get('title')}
+        """
+    )
 
 print()
 CommentPrinter(f"Total jobs: {count}")

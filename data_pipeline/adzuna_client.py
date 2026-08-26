@@ -59,3 +59,14 @@ class AdzunaClient:
 
             for job in results:
                 yield job
+
+    def iter_pages(self, max_pages: int = 100):
+        for page in range(1, max_pages + 1):
+            data = self.search_jobs(page)
+
+            results = data.get("results", [])
+
+            if not results:
+                break
+
+            yield data

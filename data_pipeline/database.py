@@ -1,16 +1,22 @@
 from typing import Optional
 
 from sqlalchemy import Boolean, Float, Integer, String, Text, create_engine
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from data_pipeline.config import settings 
 
 
 DATABASE_URL = settings.DATABASE_URL
+
 engine = create_engine(
     DATABASE_URL,
     echo=True,
 )
 
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False,
+)
 
 class Base(DeclarativeBase):
     pass

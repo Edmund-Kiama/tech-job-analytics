@@ -25,7 +25,6 @@ def transform_adzuna_job(item: dict) -> dict:
         "category_label": category.get("label"),
         "category_tag": category.get("tag"),
         "location_name": location.get("display_name"),
-        "latitude": item.get("latitude"), # Note: latitude usually comes from item directly or location depending on API version, keeping your structure
+        "latitude": item.get("latitude"), 
         "longitude": item.get("longitude"), 
-        # (Wait, your original code had location.get("latitude"), make sure to match that if it was correct)
     }

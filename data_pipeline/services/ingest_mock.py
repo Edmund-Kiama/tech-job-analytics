@@ -1,7 +1,8 @@
 import json
 from sqlalchemy.orm import Session
-from database import Listing, engine
-from helper import CommentPrinter
+
+from data_pipeline.database import Listing, engine
+from data_pipeline.utils.console import CommentPrinter
 
 
 def ingest_mock_data(json_file: str):

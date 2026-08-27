@@ -1,5 +1,5 @@
 from data_pipeline.database import SessionLocal, Listing
-from data_pipeline.helper import CommentPrinter
+from data_pipeline.utils.console import CommentPrinter
 
 
 with SessionLocal() as session:

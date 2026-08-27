@@ -1,9 +1,9 @@
 from sqlalchemy.dialects.sqlite import insert
 
-from data_pipeline.adzuna_client import AdzunaClient
+from data_pipeline.clients.adzuna import AdzunaClient
 from data_pipeline.database import Listing, SessionLocal
-from data_pipeline.transform import transform_adzuna_job
-from data_pipeline.helper import CommentPrinter
+from data_pipeline.processing.transform import transform_adzuna_job
+from data_pipeline.utils.console import CommentPrinter
 
 
 def ingest_jobs(max_pages: int = 3):

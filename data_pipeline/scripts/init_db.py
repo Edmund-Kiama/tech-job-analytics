@@ -1,5 +1,5 @@
 from data_pipeline.database import Base, engine
-from data_pipeline.helper import CommentPrinter
+from data_pipeline.utils.console import CommentPrinter
 
 def initialize_database(): 
     CommentPrinter("Initializing the database...")

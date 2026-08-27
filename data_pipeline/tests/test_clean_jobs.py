@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from data_pipeline.pandas_loader import load_bronze_json
-from data_pipeline.clean_jobs import handle_missing_values, sanitize_text
+from data_pipeline.storage.bronze_loader import load_bronze_json
+from data_pipeline.processing.clean import handle_missing_values, sanitize_text
 
 bronze_dir = Path("data/bronze")
 bronze_files = sorted(bronze_dir.glob("adzuna_*.json"))

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from data_pipeline.pandas_loader import load_bronze_json
+from data_pipeline.storage.bronze_loader import load_bronze_json
 
 
 bronze_dir = Path("data/bronze")

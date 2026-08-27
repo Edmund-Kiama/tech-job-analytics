@@ -1,5 +1,5 @@
-from data_pipeline.adzuna_client import AdzunaClient
-from data_pipeline.helper import CommentPrinter
+from data_pipeline.clients.adzuna import AdzunaClient
+from data_pipeline.utils.console import CommentPrinter
 
 
 client = AdzunaClient()

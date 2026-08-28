@@ -1,3 +1,30 @@
+import pandas as pd
+
+from data_pipeline.processing.clean import (
+    enforce_dtypes,
+    flatten_nested_fields,
+    handle_missing_values,
+    normalize_location,
+    normalize_salary,
+    sanitize_text,
+)
+
+
+def transform_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Execute the complete Phase 2.2 Pandas transformation pipeline.
+    """
+    df = df.copy()
+
+    df = handle_missing_values(df)
+    df = sanitize_text(df)
+    df = flatten_nested_fields(df)
+    df = normalize_location(df)
+    df = normalize_salary(df)
+    df = enforce_dtypes(df)
+
+    return df
+
 def transform_adzuna_job(item: dict) -> dict:
     company = item.get("company") or {}
     category = item.get("category") or {}

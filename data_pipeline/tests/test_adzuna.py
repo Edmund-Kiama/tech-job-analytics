@@ -4,24 +4,19 @@ from data_pipeline.utils.console import CommentPrinter
 
 client = AdzunaClient()
 
-# data = client.search_jobs()
-
-# CommentPrinter(f"Response received\nNumber of jobs: {len(data.get('results', []))}")
-
-# if data.get("results"):
-#     first_job = data["results"][0]
-
-# CommentPrinter(f"First job:\nID: {first_job.get('id')}\nTitle: {first_job.get('title')}")
-
 count = 0
 
 for job in client.iter_jobs(max_pages=3):
     count += 1
-    CommentPrinter(
+    print(
         f"""
         Job {count}
-        ID: {job.get('id')}
-        Title: {job.get('title')}
+        salary_min: {job.get('salary_min')}
+        salary_max: {job.get('salary_max')}
+        salary_is_predicted: {job.get('salary_is_predicted')}
+        contract_time: {job.get('contract_time')}
+        contract_type: {job.get('contract_type')}
+
         """
     )
 

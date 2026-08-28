@@ -1,19 +1,8 @@
 import pandas as pd
-from pathlib import Path
 
 from data_pipeline.storage.bronze_loader import load_bronze_json
 from data_pipeline.processing.transform import transform_dataframe
-
-
-def get_latest_bronze_file() -> Path:
-    bronze_dir = Path("data/bronze")
-
-    files = sorted(bronze_dir.glob("adzuna_*.json"))
-
-    if not files:
-        raise FileNotFoundError("No Bronze JSON files found.")
-
-    return files[-1]
+from data_pipeline.utils.helper import get_latest_bronze_file
 
 
 def test_full_pandas_transformation():

@@ -1,16 +1,8 @@
-from pathlib import Path
-
 from data_pipeline.storage.bronze_loader import load_bronze_json
+from data_pipeline.utils.helper import get_latest_bronze_file
 
 
-bronze_dir = Path("data/bronze")
-
-bronze_files = sorted(bronze_dir.glob("adzuna_*.json"))
-
-if not bronze_files:
-    raise FileNotFoundError("No Bronze JSON files found.")
-
-latest_file = bronze_files[-1]
+latest_file = get_latest_bronze_file()
 
 df = load_bronze_json(latest_file)
 

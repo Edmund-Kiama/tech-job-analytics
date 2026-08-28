@@ -190,7 +190,6 @@ def calculate_distribution_statistics(
     }
 
 
-
 def prepare_numpy_array(
     df: pd.DataFrame,
     column: str,
@@ -201,7 +200,6 @@ def prepare_numpy_array(
     Missing values are removed before conversion.
     """
     return df[column].dropna().to_numpy(dtype=float)
-
 
 
 def calculate_outlier_bounds(
@@ -339,7 +337,6 @@ def calculate_salary_ranges(
         })
 
     return result
-
 
 
 def safe_statistics(values):

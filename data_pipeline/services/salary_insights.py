@@ -1,5 +1,6 @@
-from sqlalchemy.orm import Session
 from datetime import datetime, timezone
+
+from sqlalchemy.orm import Session
 
 from data_pipeline.database.models import SalaryInsight
 

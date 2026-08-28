@@ -1,4 +1,5 @@
 import json
+
 from sqlalchemy.orm import Session
 
 from data_pipeline.database import Listing, engine
@@ -40,7 +41,9 @@ def ingest_mock_data(json_file: str):
 
         except Exception:
             session.rollback()
-            CommentPrinter("Error occurred while ingesting mock data. Rolling back changes.")
+            CommentPrinter(
+                "Error occurred while ingesting mock data. Rolling back changes."
+            )
             raise
 
 

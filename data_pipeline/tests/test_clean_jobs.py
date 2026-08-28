@@ -1,7 +1,7 @@
 import pandas as pd
 
-from data_pipeline.storage.bronze_loader import load_bronze_json
 from data_pipeline.processing.transform import transform_dataframe
+from data_pipeline.storage.bronze_loader import load_bronze_json
 from data_pipeline.utils.helper import get_latest_bronze_file
 
 
@@ -51,8 +51,7 @@ def test_full_pandas_transformation():
                 "normalized_salary_max",
                 "normalized_salary_midpoint",
             ]
-        ]
-        .to_string(index=False)
+        ].to_string(index=False)
     )
 
     print("\nSalary summary:")
@@ -129,18 +128,10 @@ def test_full_pandas_transformation():
     assert str(df["salary_period"].dtype) == "string"
     assert str(df["salary_is_predicted"].dtype) == "boolean"
 
-    assert pd.api.types.is_datetime64tz_dtype(
-        df["created"]
-    )
+    assert pd.api.types.is_datetime64tz_dtype(df["created"])
 
-    assert pd.api.types.is_numeric_dtype(
-        df["normalized_salary_min"]
-    )
+    assert pd.api.types.is_numeric_dtype(df["normalized_salary_min"])
 
-    assert pd.api.types.is_numeric_dtype(
-        df["normalized_salary_max"]
-    )
+    assert pd.api.types.is_numeric_dtype(df["normalized_salary_max"])
 
-    assert pd.api.types.is_numeric_dtype(
-        df["normalized_salary_midpoint"]
-    )
+    assert pd.api.types.is_numeric_dtype(df["normalized_salary_midpoint"])

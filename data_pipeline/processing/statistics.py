@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
@@ -10,20 +10,32 @@ def prepare_salary_arrays(df: pd.DataFrame) -> Dict[str, np.ndarray]:
     and convert them into NumPy arrays.
     """
 
-    salary_min = pd.to_numeric(
-        df["normalized_salary_min"],
-        errors="coerce",
-    ).dropna().to_numpy(dtype=float)
+    salary_min = (
+        pd.to_numeric(
+            df["normalized_salary_min"],
+            errors="coerce",
+        )
+        .dropna()
+        .to_numpy(dtype=float)
+    )
 
-    salary_max = pd.to_numeric(
-        df["normalized_salary_max"],
-        errors="coerce",
-    ).dropna().to_numpy(dtype=float)
+    salary_max = (
+        pd.to_numeric(
+            df["normalized_salary_max"],
+            errors="coerce",
+        )
+        .dropna()
+        .to_numpy(dtype=float)
+    )
 
-    salary_midpoint = pd.to_numeric(
-        df["normalized_salary_midpoint"],
-        errors="coerce",
-    ).dropna().to_numpy(dtype=float)
+    salary_midpoint = (
+        pd.to_numeric(
+            df["normalized_salary_midpoint"],
+            errors="coerce",
+        )
+        .dropna()
+        .to_numpy(dtype=float)
+    )
 
     return {
         "normalized_salary_min": salary_min,
@@ -45,9 +57,7 @@ def calculate_descriptive_statistics(
     values = values[~np.isnan(values)]
 
     if values.size == 0:
-        raise ValueError(
-            "Cannot calculate statistics from an empty array."
-        )
+        raise ValueError("Cannot calculate statistics from an empty array.")
 
     return {
         "count": int(values.size),
@@ -90,9 +100,7 @@ def calculate_percentiles(
     values = values[~np.isnan(values)]
 
     if values.size == 0:
-        raise ValueError(
-            "Cannot calculate percentiles from an empty array."
-        )
+        raise ValueError("Cannot calculate percentiles from an empty array.")
 
     p25, p50, p75 = np.percentile(
         values,
@@ -245,9 +253,7 @@ def detect_outliers(
     lower_outliers = values[values < lower_bound]
     upper_outliers = values[values > upper_bound]
 
-    all_outliers = values[
-        (values < lower_bound) | (values > upper_bound)
-    ]
+    all_outliers = values[(values < lower_bound) | (values > upper_bound)]
 
     return {
         **bounds,
@@ -277,14 +283,11 @@ def calculate_salary_ranges(
     ]
 
     missing_columns = [
-        column for column in required_columns
-        if column not in df.columns
+        column for column in required_columns if column not in df.columns
     ]
 
     if missing_columns:
-        raise ValueError(
-            f"Missing required salary columns: {missing_columns}"
-        )
+        raise ValueError(f"Missing required salary columns: {missing_columns}")
 
     salary_min = prepare_numpy_array(
         df,
@@ -310,8 +313,7 @@ def calculate_salary_ranges(
     ].dropna()
 
     range_values = (
-        valid_ranges["normalized_salary_max"]
-        - valid_ranges["normalized_salary_min"]
+        valid_ranges["normalized_salary_max"] - valid_ranges["normalized_salary_min"]
     ).to_numpy(dtype=float)
 
     result = {
@@ -322,19 +324,23 @@ def calculate_salary_ranges(
     }
 
     if len(range_values) > 0:
-        result.update({
-            "minimum_range": float(np.min(range_values)),
-            "maximum_range": float(np.max(range_values)),
-            "mean_range": float(np.mean(range_values)),
-            "median_range": float(np.median(range_values)),
-        })
+        result.update(
+            {
+                "minimum_range": float(np.min(range_values)),
+                "maximum_range": float(np.max(range_values)),
+                "mean_range": float(np.mean(range_values)),
+                "median_range": float(np.median(range_values)),
+            }
+        )
     else:
-        result.update({
-            "minimum_range": None,
-            "maximum_range": None,
-            "mean_range": None,
-            "median_range": None,
-        })
+        result.update(
+            {
+                "minimum_range": None,
+                "maximum_range": None,
+                "mean_range": None,
+                "median_range": None,
+            }
+        )
 
     return result
 
@@ -422,36 +428,28 @@ def build_salary_analytics(values):
             "maximum": float(np.max(values)),
             "standard_deviation": std,
         },
-
         "percentiles": {
             "p25": q1,
             "p50": median,
             "p75": q3,
         },
-
         "quartiles": {
             "q1": q1,
             "q3": q3,
             "iqr": float(iqr),
         },
-
         "standard_deviation_thresholds": {
             "lower_1_std": mean - std,
             "upper_1_std": mean + std,
             "lower_2_std": mean - (2 * std),
             "upper_2_std": mean + (2 * std),
         },
-
         "outliers": {
             "lower_bound": float(lower_bound),
             "upper_bound": float(upper_bound),
             "lower_outliers": lower_outliers.tolist(),
             "upper_outliers": upper_outliers.tolist(),
-            "all_outliers": np.concatenate(
-                [lower_outliers, upper_outliers]
-            ).tolist(),
-            "count": int(
-                lower_outliers.size + upper_outliers.size
-            ),
+            "all_outliers": np.concatenate([lower_outliers, upper_outliers]).tolist(),
+            "count": int(lower_outliers.size + upper_outliers.size),
         },
     }

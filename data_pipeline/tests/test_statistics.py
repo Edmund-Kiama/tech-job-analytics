@@ -2,22 +2,23 @@ import numpy as np
 import pandas as pd
 
 from data_pipeline.processing.statistics import (
-    prepare_salary_arrays,
+    build_salary_analytics,
     calculate_descriptive_statistics,
-    calculate_salary_statistics,
-    calculate_percentiles,
-    calculate_iqr,
-    calculate_std_thresholds,
     calculate_distribution_statistics,
+    calculate_iqr,
     calculate_outlier_bounds,
-    detect_outliers,
+    calculate_percentiles,
     calculate_salary_ranges,
+    calculate_salary_statistics,
+    calculate_std_thresholds,
+    detect_outliers,
+    prepare_salary_arrays,
     safe_statistics,
-    build_salary_analytics
 )
-from data_pipeline.storage.bronze_loader import load_bronze_json
 from data_pipeline.processing.transform import transform_dataframe
+from data_pipeline.storage.bronze_loader import load_bronze_json
 from data_pipeline.utils.helper import get_latest_bronze_file
+
 
 def get_clean_dataframe():
     """
@@ -93,7 +94,6 @@ def test_salary_statistics():
     print("=" * 60)
 
     for salary_type, stats in statistics.items():
-
         print(f"\n{salary_type}")
 
         for key, value in stats.items():
@@ -224,20 +224,25 @@ def test_distribution_statistics():
     assert result["lower_1_std"] < result["upper_1_std"]
     assert result["lower_2_std"] < result["upper_2_std"]
 
+
 ##
 
+
 def test_outlier_bounds():
-    values = np.array([
-        50000,
-        51000,
-        52000,
-        53000,
-        54000,
-        55000,
-        56000,
-        57000,
-        100000,
-    ], dtype=float)
+    values = np.array(
+        [
+            50000,
+            51000,
+            52000,
+            53000,
+            54000,
+            55000,
+            56000,
+            57000,
+            100000,
+        ],
+        dtype=float,
+    )
 
     result = calculate_outlier_bounds(values)
 
@@ -254,17 +259,20 @@ def test_outlier_bounds():
 
 
 def test_detect_outliers():
-    values = np.array([
-        50000,
-        51000,
-        52000,
-        53000,
-        54000,
-        55000,
-        56000,
-        57000,
-        100000,
-    ], dtype=float)
+    values = np.array(
+        [
+            50000,
+            51000,
+            52000,
+            53000,
+            54000,
+            55000,
+            56000,
+            57000,
+            100000,
+        ],
+        dtype=float,
+    )
 
     result = detect_outliers(values)
 
@@ -286,26 +294,28 @@ def test_detect_outliers():
 
 
 def test_salary_range_analysis():
-    df = pd.DataFrame({
-        "normalized_salary_min": [
-            30000,
-            40000,
-            np.nan,
-            50000,
-        ],
-        "normalized_salary_max": [
-            50000,
-            60000,
-            55000,
-            70000,
-        ],
-        "normalized_salary_midpoint": [
-            40000,
-            50000,
-            55000,
-            60000,
-        ],
-    })
+    df = pd.DataFrame(
+        {
+            "normalized_salary_min": [
+                30000,
+                40000,
+                np.nan,
+                50000,
+            ],
+            "normalized_salary_max": [
+                50000,
+                60000,
+                55000,
+                70000,
+            ],
+            "normalized_salary_midpoint": [
+                40000,
+                50000,
+                55000,
+                60000,
+            ],
+        }
+    )
 
     result = calculate_salary_ranges(df)
 

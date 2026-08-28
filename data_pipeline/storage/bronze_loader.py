@@ -1,7 +1,9 @@
 import json
-import pandas as pd
 from pathlib import Path
 from typing import Union
+
+import pandas as pd
+
 
 def load_bronze_json(file_path: Union[str, Path]) -> pd.DataFrame:
     file_path = Path(file_path)

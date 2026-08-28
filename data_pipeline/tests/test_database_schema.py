@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import inspect
 
 from data_pipeline.database.connection import engine
-from data_pipeline.database.models import Listing, SalaryInsight, Base
+from data_pipeline.database.models import Base, Listing, SalaryInsight
 
 
 def test_listing_model_exists():
@@ -22,8 +22,7 @@ def test_salary_insight_table_schema():
     assert "salary_insights" in inspector.get_table_names()
 
     columns = {
-        column["name"]: column
-        for column in inspector.get_columns("salary_insights")
+        column["name"]: column for column in inspector.get_columns("salary_insights")
     }
 
     expected_columns = {

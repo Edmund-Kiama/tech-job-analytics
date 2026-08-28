@@ -2,7 +2,6 @@ from typing import List
 
 import pandas as pd
 
-
 TEXT_COLUMNS = [
     "title",
     "description",
@@ -33,12 +32,7 @@ def sanitize_text(df: pd.DataFrame) -> pd.DataFrame:
 
     for column in TEXT_COLUMNS:
         if column in df.columns:
-            df[column] = (
-                df[column]
-                .astype("string")
-                .str.strip()
-                .replace("", pd.NA)
-            )
+            df[column] = df[column].astype("string").str.strip().replace("", pd.NA)
 
     return df
 
@@ -51,35 +45,19 @@ def flatten_nested_fields(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
     df["company_name"] = df["company"].apply(
-        lambda value: (
-            value.get("display_name")
-            if isinstance(value, dict)
-            else pd.NA
-        )
+        lambda value: value.get("display_name") if isinstance(value, dict) else pd.NA
     )
 
     df["category_label"] = df["category"].apply(
-        lambda value: (
-            value.get("label")
-            if isinstance(value, dict)
-            else pd.NA
-        )
+        lambda value: value.get("label") if isinstance(value, dict) else pd.NA
     )
 
     df["category_tag"] = df["category"].apply(
-        lambda value: (
-            value.get("tag")
-            if isinstance(value, dict)
-            else pd.NA
-        )
+        lambda value: value.get("tag") if isinstance(value, dict) else pd.NA
     )
 
     df["location_name"] = df["location"].apply(
-        lambda value: (
-            value.get("display_name")
-            if isinstance(value, dict)
-            else pd.NA
-        )
+        lambda value: value.get("display_name") if isinstance(value, dict) else pd.NA
     )
 
     return df
@@ -112,28 +90,18 @@ def normalize_location(df: pd.DataFrame) -> pd.DataFrame:
             return []
 
         return [
-            str(item).strip()
-            for item in area
-            if item is not None and str(item).strip()
+            str(item).strip() for item in area if item is not None and str(item).strip()
         ]
 
     areas = df["location"].apply(extract_area)
 
-    df["country"] = areas.apply(
-        lambda area: area[0] if len(area) >= 1 else pd.NA
-    )
+    df["country"] = areas.apply(lambda area: area[0] if len(area) >= 1 else pd.NA)
 
-    df["region"] = areas.apply(
-        lambda area: area[1] if len(area) >= 2 else pd.NA
-    )
+    df["region"] = areas.apply(lambda area: area[1] if len(area) >= 2 else pd.NA)
 
     df["city"] = areas.apply(
         lambda area: (
-            area[-2]
-            if len(area) >= 4
-            else area[-1]
-            if len(area) >= 3
-            else pd.NA
+            area[-2] if len(area) >= 4 else area[-1] if len(area) >= 3 else pd.NA
         )
     )
 
@@ -187,24 +155,17 @@ def normalize_salary(df: pd.DataFrame) -> pd.DataFrame:
 
     # Both bounds available:
     # midpoint = (minimum + maximum) / 2
-    both_available = (
-        df["salary_min"].notna()
-        & df["salary_max"].notna()
-    )
+    both_available = df["salary_min"].notna() & df["salary_max"].notna()
 
     df.loc[
         both_available,
         "normalized_salary_midpoint",
     ] = (
-        df.loc[both_available, "salary_min"]
-        + df.loc[both_available, "salary_max"]
+        df.loc[both_available, "salary_min"] + df.loc[both_available, "salary_max"]
     ) / 2
 
     # Only minimum available.
-    only_min = (
-        df["salary_min"].notna()
-        & df["salary_max"].isna()
-    )
+    only_min = df["salary_min"].notna() & df["salary_max"].isna()
 
     df.loc[
         only_min,
@@ -212,10 +173,7 @@ def normalize_salary(df: pd.DataFrame) -> pd.DataFrame:
     ] = df.loc[only_min, "salary_min"]
 
     # Only maximum available.
-    only_max = (
-        df["salary_min"].isna()
-        & df["salary_max"].notna()
-    )
+    only_max = df["salary_min"].isna() & df["salary_max"].notna()
 
     df.loc[
         only_max,
@@ -276,14 +234,16 @@ def enforce_dtypes(df: pd.DataFrame) -> pd.DataFrame:
     if "salary_is_predicted" in df.columns:
         df["salary_is_predicted"] = (
             df["salary_is_predicted"]
-            .map({
-                0: False,
-                1: True,
-                "0": False,
-                "1": True,
-                True: True,
-                False: False,
-            })
+            .map(
+                {
+                    0: False,
+                    1: True,
+                    "0": False,
+                    "1": True,
+                    True: True,
+                    False: False,
+                }
+            )
             .astype("boolean")
         )
 

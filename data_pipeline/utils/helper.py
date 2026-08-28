@@ -1,7 +1,6 @@
 from pathlib import Path
 
 
-
 def get_latest_bronze_file() -> Path:
     bronze_dir = Path("data/bronze")
     files = sorted(bronze_dir.glob("adzuna_*.json"))

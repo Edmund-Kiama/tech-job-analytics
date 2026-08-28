@@ -1,13 +1,10 @@
 from fastapi import FastAPI
-from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 
 from data_pipeline.database import Listing, engine
 
-app = FastAPI(
-    title="Tech Job Analytics API",
-    version="0.1.0"
-)
+app = FastAPI(title="Tech Job Analytics API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,6 +13,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.get("/jobs")
 async def get_jobs():
@@ -39,7 +37,7 @@ async def get_jobs():
                 "category_tag": listing.category_tag,
                 "location_name": listing.location_name,
                 "latitude": listing.latitude,
-                "longitude": listing.longitude 
-            } 
+                "longitude": listing.longitude,
+            }
             for listing in listings
         ]

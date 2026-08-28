@@ -1,0 +1,37 @@
+[tool.ruff]
+# Target Python version
+target-version = "py38"
+
+# Maximum line length (matches standard Black formatting)
+line-length = 88
+
+# Directories and files to exclude from formatting/linting
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "data",
+    "*.db",
+    "frontend/node_modules"
+]
+
+[tool.ruff.lint]
+# Enable pycodestyle errors (E), Pyflakes (F), and isort import sorting (I)
+select = ["E", "F", "I"]
+ignore = []
+
+# Allow Ruff to automatically fix all safe violations (including import sorting)
+fixable = ["ALL"]
+
+[tool.ruff.lint.isort]
+# Treat your local packages as first-party modules so imports group correctly
+known-first-party = ["backend", "data_pipeline"]
+
+[tool.ruff.format]
+# Standard formatting options matching Black conventions
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

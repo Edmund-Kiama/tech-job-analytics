@@ -3,7 +3,6 @@ from sqlalchemy.orm import sessionmaker
 
 from data_pipeline.config import settings
 
-
 DATABASE_URL = settings.DATABASE_URL
 
 engine = create_engine(

@@ -1,7 +1,7 @@
 import pandas as pd
 
-from data_pipeline.database.models import SalaryInsight, Base
-from data_pipeline.database.connection import engine, SessionLocal
+from data_pipeline.database.connection import SessionLocal, engine
+from data_pipeline.database.models import Base, SalaryInsight
 from data_pipeline.processing.salary_insights import generate_salary_insights
 from data_pipeline.services.salary_insights import save_salary_insights
 
@@ -58,9 +58,7 @@ def test_save_salary_insights():
     # Open a fresh session to verify the actual database record.
     with SessionLocal() as session:
         result = (
-            session.query(SalaryInsight)
-            .filter(SalaryInsight.id == saved_id)
-            .first()
+            session.query(SalaryInsight).filter(SalaryInsight.id == saved_id).first()
         )
 
         assert result is not None

@@ -25,11 +25,12 @@ def transform_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+
 def transform_adzuna_job(item: dict) -> dict:
     company = item.get("company") or {}
     category = item.get("category") or {}
     location = item.get("location") or {}
-    
+
     # Safely convert to a boolean. '1' -> True, '0' -> False
     predicted_raw = item.get("salary_is_predicted")
     if predicted_raw is not None:
@@ -52,6 +53,6 @@ def transform_adzuna_job(item: dict) -> dict:
         "category_label": category.get("label"),
         "category_tag": category.get("tag"),
         "location_name": location.get("display_name"),
-        "latitude": item.get("latitude"), 
-        "longitude": item.get("longitude"), 
+        "latitude": item.get("latitude"),
+        "longitude": item.get("longitude"),
     }

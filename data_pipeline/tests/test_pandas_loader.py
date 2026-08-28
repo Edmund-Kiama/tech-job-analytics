@@ -1,7 +1,6 @@
 from data_pipeline.storage.bronze_loader import load_bronze_json
 from data_pipeline.utils.helper import get_latest_bronze_file
 
-
 latest_file = get_latest_bronze_file()
 
 df = load_bronze_json(latest_file)

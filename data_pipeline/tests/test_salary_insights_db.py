@@ -1,110 +1,172 @@
-import pandas as pd
+from datetime import datetime
 
-from data_pipeline.database.connection import SessionLocal, engine
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 from data_pipeline.database.models import Base, SalaryInsight
-from data_pipeline.processing.salary_insights import generate_salary_insights
+from data_pipeline.processing.statistics import (
+    build_salary_insight_record,
+)
 from data_pipeline.services.salary_insights import save_salary_insights
 
 
-def create_test_dataframe():
-    return pd.DataFrame(
-        {
-            "id": ["1", "2", "3", "4", "5"],
-            "normalized_salary_min": [
-                40000.0,
-                45000.0,
-                50000.0,
-                55000.0,
-                60000.0,
-            ],
-            "normalized_salary_max": [
-                50000.0,
-                55000.0,
-                60000.0,
-                65000.0,
-                70000.0,
-            ],
-            "normalized_salary_midpoint": [
-                45000.0,
-                50000.0,
-                55000.0,
-                60000.0,
-                65000.0,
-            ],
-        }
+@pytest.fixture
+def session():
+    engine = create_engine("sqlite:///:memory:")
+
+    Base.metadata.create_all(engine)
+
+    SessionLocal = sessionmaker(bind=engine)
+
+    session = SessionLocal()
+
+    try:
+        yield session
+    finally:
+        session.close()
+
+
+def sample_statistics():
+    return {
+        "count": 5,
+        "mean": 55000.0,
+        "median": 55000.0,
+        "minimum": 45000.0,
+        "maximum": 65000.0,
+        "standard_deviation": 7071.067811865475,
+        "p25": 50000.0,
+        "p50": 55000.0,
+        "p75": 60000.0,
+        "q1": 50000.0,
+        "q3": 60000.0,
+        "iqr": 10000.0,
+        "lower_1_std": 47928.932188134524,
+        "upper_1_std": 62071.067811865476,
+        "lower_2_std": 40857.86437626905,
+        "upper_2_std": 69142.13562373095,
+        "outlier_count": 0,
+        "lower_outlier_count": 0,
+        "upper_outlier_count": 0,
+        "jobs_with_min_salary": 5,
+        "jobs_with_max_salary": 5,
+        "jobs_with_midpoint_salary": 5,
+        "jobs_with_complete_range": 5,
+        "minimum_range": 10000.0,
+        "maximum_range": 10000.0,
+        "mean_range": 10000.0,
+        "median_range": 10000.0,
+    }
+
+
+def test_build_salary_insight_record():
+    stats = sample_statistics()
+
+    record = build_salary_insight_record(stats)
+
+    assert isinstance(record, dict)
+
+    assert record["job_count"] == 5
+    assert record["salary_count"] == 5
+
+    assert record["mean_salary"] == 55000.0
+    assert record["median_salary"] == 55000.0
+
+    assert record["p25"] == 50000.0
+    assert record["p75"] == 60000.0
+
+    assert record["iqr"] == 10000.0
+
+    assert record["outlier_count"] == 0
+
+    assert record["jobs_with_complete_range"] == 5
+
+
+def test_build_salary_insight_record_uses_python_types():
+    stats = sample_statistics()
+
+    record = build_salary_insight_record(stats)
+
+    for key, value in record.items():
+        assert type(value) in (int, float)
+
+
+def test_save_salary_insights(session):
+    stats = sample_statistics()
+
+    record = build_salary_insight_record(stats)
+
+    insight = save_salary_insights(
+        session,
+        record,
+        analysis_version="2.3",
     )
 
+    session.commit()
 
-def test_save_salary_insights():
-    """
-    Verify that generated salary insights can be persisted
-    and read back from SQLite.
-    """
+    assert isinstance(insight, SalaryInsight)
 
-    # Make sure the test database schema exists.
-    Base.metadata.create_all(engine)
+    assert insight.id is not None
 
-    df = create_test_dataframe()
+    assert insight.job_count == 5
+    assert insight.salary_count == 5
 
-    insights = generate_salary_insights(df)
+    assert insight.median_salary == 55000.0
+    assert insight.mean_salary == 55000.0
 
-    with SessionLocal() as session:
-        saved = save_salary_insights(session, insights)
+    assert insight.analysis_version == "2.3"
 
-        session.commit()
-
-        saved_id = saved.id
-
-    # Open a fresh session to verify the actual database record.
-    with SessionLocal() as session:
-        result = (
-            session.query(SalaryInsight).filter(SalaryInsight.id == saved_id).first()
-        )
-
-        assert result is not None
-
-        assert result.job_count == 5
-        assert result.salary_count == 5
-
-        assert result.mean_salary == 55000.0
-        assert result.median_salary == 55000.0
-        assert result.minimum_salary == 45000.0
-        assert result.maximum_salary == 65000.0
-
-        assert result.p25 == 50000.0
-        assert result.p50 == 55000.0
-        assert result.p75 == 60000.0
-
-        assert result.q1 == 50000.0
-        assert result.q3 == 60000.0
-        assert result.iqr == 10000.0
-
-        assert result.outlier_count == 0
-        assert result.lower_outlier_count == 0
-        assert result.upper_outlier_count == 0
-
-        assert result.jobs_with_min_salary == 5
-        assert result.jobs_with_max_salary == 5
-        assert result.jobs_with_midpoint_salary == 5
-        assert result.jobs_with_complete_range == 5
-
-        assert result.minimum_range == 10000.0
-        assert result.maximum_range == 10000.0
-        assert result.mean_range == 10000.0
-        assert result.median_range == 10000.0
+    assert isinstance(insight.created_at, datetime)
 
 
-def test_save_salary_insights_returns_model_instance():
-    Base.metadata.create_all(engine)
+def test_salary_insight_is_persisted(session):
+    stats = sample_statistics()
 
-    df = create_test_dataframe()
-    insights = generate_salary_insights(df)
+    record = build_salary_insight_record(stats)
 
-    with SessionLocal() as session:
-        saved = save_salary_insights(session, insights)
+    insight = save_salary_insights(
+        session,
+        record,
+        analysis_version="2.3",
+    )
 
-        assert isinstance(saved, SalaryInsight)
-        assert saved.id is not None
-        assert saved.created_at is not None
+    session.commit()
 
-        session.rollback()
+    stored = session.get(SalaryInsight, insight.id)
+
+    assert stored is not None
+    assert stored.id == insight.id
+    assert stored.median_salary == 55000.0
+    assert stored.analysis_version == "2.3"
+
+
+def test_multiple_analysis_snapshots_are_preserved(session):
+    stats = sample_statistics()
+
+    record = build_salary_insight_record(stats)
+
+    first = save_salary_insights(
+        session,
+        record,
+        analysis_version="2.3",
+    )
+
+    second = save_salary_insights(
+        session,
+        record,
+        analysis_version="2.3",
+    )
+
+    session.commit()
+
+    assert first.id != second.id
+
+    stored = session.query(SalaryInsight).order_by(SalaryInsight.id).all()
+
+    assert len(stored) == 2
+
+    assert stored[0].created_at is not None
+    assert stored[1].created_at is not None
+
+    assert stored[0].analysis_version == "2.3"
+    assert stored[1].analysis_version == "2.3"

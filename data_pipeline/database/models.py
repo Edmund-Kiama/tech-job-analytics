@@ -84,3 +84,9 @@ class SalaryInsight(Base):
     maximum_range: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     mean_range: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     median_range: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
+    analysis_version: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="2.3",
+    )

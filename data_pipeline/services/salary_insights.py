@@ -8,6 +8,7 @@ from data_pipeline.database.models import SalaryInsight
 def save_salary_insights(
     session: Session,
     insights: dict,
+    analysis_version: str = "2.3",
 ) -> SalaryInsight:
     """
     Persist one salary-insights snapshot to the database.
@@ -16,8 +17,9 @@ def save_salary_insights(
     """
 
     salary_insight = SalaryInsight(
-        created_at=datetime.now(timezone.utc),
         **insights,
+        created_at=datetime.now(timezone.utc),
+        analysis_version=analysis_version,
     )
 
     session.add(salary_insight)

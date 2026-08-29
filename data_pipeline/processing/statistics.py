@@ -453,3 +453,54 @@ def build_salary_analytics(values):
             "count": int(lower_outliers.size + upper_outliers.size),
         },
     }
+
+def build_salary_insight_record(stats: dict) -> dict:
+    """
+    Convert calculated salary statistics into a database-ready
+    Python dictionary.
+
+    The database layer receives ordinary Python values rather than
+    NumPy-specific objects.
+    """
+
+    return {
+        "job_count": int(stats["count"]),
+        "salary_count": int(stats["count"]),
+
+        "mean_salary": float(stats["mean"]),
+        "median_salary": float(stats["median"]),
+        "minimum_salary": float(stats["minimum"]),
+        "maximum_salary": float(stats["maximum"]),
+        "standard_deviation": float(stats["standard_deviation"]),
+
+        "p25": float(stats["p25"]),
+        "p50": float(stats["p50"]),
+        "p75": float(stats["p75"]),
+
+        "q1": float(stats["q1"]),
+        "q3": float(stats["q3"]),
+        "iqr": float(stats["iqr"]),
+
+        "lower_1_std": float(stats["lower_1_std"]),
+        "upper_1_std": float(stats["upper_1_std"]),
+        "lower_2_std": float(stats["lower_2_std"]),
+        "upper_2_std": float(stats["upper_2_std"]),
+
+        "outlier_count": int(stats["outlier_count"]),
+        "lower_outlier_count": int(stats["lower_outlier_count"]),
+        "upper_outlier_count": int(stats["upper_outlier_count"]),
+
+        "jobs_with_min_salary": int(stats["jobs_with_min_salary"]),
+        "jobs_with_max_salary": int(stats["jobs_with_max_salary"]),
+        "jobs_with_midpoint_salary": int(
+            stats["jobs_with_midpoint_salary"]
+        ),
+        "jobs_with_complete_range": int(
+            stats["jobs_with_complete_range"]
+        ),
+
+        "minimum_range": float(stats["minimum_range"]),
+        "maximum_range": float(stats["maximum_range"]),
+        "mean_range": float(stats["mean_range"]),
+        "median_range": float(stats["median_range"]),
+    }

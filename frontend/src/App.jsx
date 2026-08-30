@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = import.meta.env.API_BASE_URL;
 
 function useTheme() {
   const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem("theme");
+    const savedTheme = localStorage.getItem('theme');
 
-    return savedTheme === "light" ||
-      savedTheme === "dark" ||
-      savedTheme === "system"
+    return savedTheme === 'light' ||
+      savedTheme === 'dark' ||
+      savedTheme === 'system'
       ? savedTheme
-      : "system";
+      : 'system';
   });
 
   useEffect(() => {
@@ -18,34 +18,32 @@ function useTheme() {
 
     function updateTheme() {
       const isDark =
-        theme === "dark" ||
-        (theme === "system" &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches);
+        theme === 'dark' ||
+        (theme === 'system' &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-      root.classList.toggle("dark", isDark);
-      root.classList.toggle("light", !isDark);
+      root.classList.toggle('dark', isDark);
+      root.classList.toggle('light', !isDark);
     }
 
     updateTheme();
 
-    localStorage.setItem("theme", theme);
+    localStorage.setItem('theme', theme);
 
-    if (theme !== "system") {
+    if (theme !== 'system') {
       return;
     }
 
-    const mediaQuery = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    );
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
     const handleSystemThemeChange = () => {
       updateTheme();
     };
 
-    mediaQuery.addEventListener("change", handleSystemThemeChange);
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
 
     return () => {
-      mediaQuery.removeEventListener("change", handleSystemThemeChange);
+      mediaQuery.removeEventListener('change', handleSystemThemeChange);
     };
   }, [theme]);
 
@@ -111,9 +109,7 @@ function App() {
         <div className="text-center">
           <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
 
-          <p className="text-sm text-muted-foreground">
-            Loading analytics...
-          </p>
+          <p className="text-sm text-muted-foreground">Loading analytics...</p>
         </div>
       </main>
     );
@@ -150,41 +146,32 @@ function App() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-      <header className="mb-8">
-  <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-    <div>
-      <p className="mb-2 text-sm font-medium text-primary">
-        TECH JOB ANALYTICS
-      </p>
+        <header className="mb-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="mb-2 text-sm font-medium text-primary">
+                TECH JOB ANALYTICS
+              </p>
 
-      <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-        Job Market Dashboard
-      </h1>
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                Job Market Dashboard
+              </h1>
 
-      <p className="mt-2 max-w-2xl text-muted-foreground">
-        Salary and job-market analytics derived from the latest Adzuna
-        dataset.
-      </p>
-    </div>
+              <p className="mt-2 max-w-2xl text-muted-foreground">
+                Salary and job-market analytics derived from the latest Adzuna
+                dataset.
+              </p>
+            </div>
 
-    <ThemeSwitcher
-      theme={theme}
-      setTheme={setTheme}
-    />
-  </div>
-</header>
+            <ThemeSwitcher theme={theme} setTheme={setTheme} />
+          </div>
+        </header>
 
         {summary && (
           <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard
-              label="Jobs"
-              value={summary.job_count}
-            />
+            <MetricCard label="Jobs" value={summary.job_count} />
 
-            <MetricCard
-              label="Salary Records"
-              value={summary.salary_count}
-            />
+            <MetricCard label="Salary Records" value={summary.salary_count} />
 
             <MetricCard
               label="Mean Salary"
@@ -221,7 +208,7 @@ function App() {
                 <Stat
                   label="Mean"
                   value={`£${Math.round(
-                    salary.distribution.mean,
+                    salary.distribution.mean
                   ).toLocaleString()}`}
                 />
 
@@ -292,7 +279,7 @@ function App() {
                     </h3>
 
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {job.company_name || "Unknown company"}
+                      {job.company_name || 'Unknown company'}
                     </p>
                   </div>
 
@@ -311,21 +298,20 @@ function App() {
                   </div>
 
                   <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
-                    {job.description || "No description available."}
+                    {job.description || 'No description available.'}
                   </p>
 
                   <div className="mt-5 border-t border-border pt-4">
                     <p className="text-sm font-medium">
                       {job.salary_min || job.salary_max
                         ? `£${(
-                            job.salary_min ||
-                            job.salary_max
+                            job.salary_min || job.salary_max
                           ).toLocaleString()}${
                             job.salary_min && job.salary_max
                               ? ` – £${job.salary_max.toLocaleString()}`
-                              : ""
+                              : ''
                           }`
-                        : "Salary not specified"}
+                        : 'Salary not specified'}
                     </p>
                   </div>
                 </article>
@@ -344,41 +330,41 @@ function ThemeSwitcher({ theme, setTheme }) {
       <ThemeButton
         value="light"
         label="Light"
-        active={theme === "light"}
-        onClick={() => setTheme("light")}
+        active={theme === 'light'}
+        onClick={() => setTheme('light')}
       />
 
       <ThemeButton
         value="dark"
         label="Dark"
-        active={theme === "dark"}
-        onClick={() => setTheme("dark")}
+        active={theme === 'dark'}
+        onClick={() => setTheme('dark')}
       />
 
       <ThemeButton
         value="system"
         label="System"
-        active={theme === "system"}
-        onClick={() => setTheme("system")}
+        active={theme === 'system'}
+        onClick={() => setTheme('system')}
       />
     </div>
   );
 }
 
 function ThemeButton({ value, label, active, onClick }) {
- console.log(value)
+  console.log(value);
   return (
     <button
       type="button"
       aria-pressed={active}
       onClick={onClick}
       className={[
-        "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
         active
-          ? "bg-primary text-primary-foreground"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-      ].join(" ")}
+          ? 'bg-primary text-primary-foreground'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+      ].join(' ')}
     >
       {label}
     </button>

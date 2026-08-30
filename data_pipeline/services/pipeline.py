@@ -56,9 +56,6 @@ def run_pipeline(
         "count": len(jobs),
     }
 
-    CommentPrinter(f"JOBS BEFORE BRONZE: {len(jobs)}")
-    CommentPrinter(f"PAYLOAD RESULTS: {len(payload['results'])}")
-
     # ---------------------------------------------------------
     # 2. Store immutable Bronze snapshot
     # ---------------------------------------------------------
@@ -125,9 +122,6 @@ def run_pipeline(
     # ---------------------------------------------------------
     # 9. Return execution summary
     # ---------------------------------------------------------
-
-    CommentPrinter(f"JOBS BEFORE BRONZE: {len(jobs)}")
-    CommentPrinter(f"PAYLOAD RESULTS: {len(payload['results'])}")
 
     return {
         "bronze_path": Path(bronze_path),

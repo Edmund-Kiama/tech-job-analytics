@@ -1,12 +1,72 @@
+import json
+
 import pandas as pd
 
 from data_pipeline.processing.transform import transform_dataframe
 from data_pipeline.storage.bronze_loader import load_bronze_json
-from data_pipeline.utils.helper import get_latest_bronze_file
 
 
-def test_full_pandas_transformation():
-    bronze_file = get_latest_bronze_file()
+def test_full_pandas_transformation(tmp_path):
+
+    fake_jobs = [
+        {
+            "id": "clean-1",
+            "title": "Python Developer",
+            "description": "Python backend developer",
+            "created": "2026-08-29T10:00:00Z",
+            "salary_min": 40000,
+            "salary_max": 60000,
+            "salary_is_predicted": "0",
+            "company": {"display_name": "Company A"},
+            "category": {"label": "IT Jobs", "tag": "it-jobs"},
+            "location": {
+                "display_name": "London",
+                "area": ["UK", "England", "London"],
+            },
+        },
+        {
+            "id": "clean-2",
+            "title": "Data Engineer",
+            "description": "Data engineering role",
+            "created": "2026-08-29T11:00:00Z",
+            "salary_min": 50000,
+            "salary_max": 70000,
+            "salary_is_predicted": "0",
+            "company": {"display_name": "Company B"},
+            "category": {"label": "IT Jobs", "tag": "it-jobs"},
+            "location": {
+                "display_name": "Manchester",
+                "area": ["UK", "England", "Manchester"],
+            },
+        },
+        {
+            "id": "clean-3",
+            "title": "Software Engineer",
+            "description": "Software engineering role",
+            "created": "2026-08-29T12:00:00Z",
+            "salary_min": 60000,
+            "salary_max": 80000,
+            "salary_is_predicted": "0",
+            "company": {"display_name": "Company C"},
+            "category": {"label": "IT Jobs", "tag": "it-jobs"},
+            "location": {
+                "display_name": "Birmingham",
+                "area": ["UK", "England", "Birmingham"],
+            },
+        },
+    ]
+
+    bronze_file = tmp_path / "adzuna_test.json"
+
+    bronze_file.write_text(
+        json.dumps(
+            {
+                "results": fake_jobs,
+                "count": len(fake_jobs),
+            }
+        ),
+        encoding="utf-8",
+    )
 
     df = load_bronze_json(bronze_file)
 

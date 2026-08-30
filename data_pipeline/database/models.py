@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text, create_engine
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -17,6 +17,8 @@ class Listing(Base):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     redirect_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    adref: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     salary_min: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     salary_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -35,8 +37,28 @@ class Listing(Base):
 
     location_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
+    country: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    region: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    city: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
     latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
+    salary_currency: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    salary_period: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    normalized_salary_min: Mapped[Optional[float]] = mapped_column(
+        Float,
+        nullable=True,
+    )
+    normalized_salary_max: Mapped[Optional[float]] = mapped_column(
+        Float,
+        nullable=True,
+    )
+    normalized_salary_midpoint: Mapped[Optional[float]] = mapped_column(
+        Float,
+        nullable=True,
+    )
 
 
 class SalaryInsight(Base):

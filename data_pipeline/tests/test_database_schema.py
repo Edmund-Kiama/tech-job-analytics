@@ -56,6 +56,7 @@ def test_salary_insight_table_schema():
         "maximum_range",
         "mean_range",
         "median_range",
+        "analysis_version",
     }
 
     assert set(columns.keys()) == expected_columns

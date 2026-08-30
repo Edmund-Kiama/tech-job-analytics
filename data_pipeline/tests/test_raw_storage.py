@@ -1,11 +1,24 @@
-from data_pipeline.clients.adzuna import AdzunaClient
 from data_pipeline.storage.raw import save_raw_payload
-from data_pipeline.utils.console import CommentPrinter
 
-client = AdzunaClient()
 
-data = client.search_jobs(page=1)
+def test_save_raw_payload(tmp_path, monkeypatch):
+    payload = {
+        "results": [
+            {
+                "id": "test-1",
+                "title": "Test Job",
+            }
+        ],
+        "count": 1,
+    }
 
-file_path = save_raw_payload(data)
+    monkeypatch.setattr(
+        "data_pipeline.storage.raw.BRONZE_DIR",
+        tmp_path,
+    )
 
-CommentPrinter(f"Raw payload saved: {file_path}")
+    file_path = save_raw_payload(payload)
+
+    assert file_path.exists()
+
+    assert file_path.read_text(encoding="utf-8")

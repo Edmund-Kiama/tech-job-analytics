@@ -248,10 +248,6 @@ def enforce_dtypes(df: pd.DataFrame) -> pd.DataFrame:
         )
 
     if "created" in df.columns:
-        df["created"] = pd.to_datetime(
-            df["created"],
-            errors="coerce",
-            utc=True,
-        )
+        df["created"] = pd.to_datetime(df["created"], utc=True)
 
     return df

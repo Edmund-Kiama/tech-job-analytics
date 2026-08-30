@@ -16,18 +16,59 @@ from data_pipeline.processing.statistics import (
     safe_statistics,
 )
 from data_pipeline.processing.transform import transform_dataframe
-from data_pipeline.storage.bronze_loader import load_bronze_json
-from data_pipeline.utils.helper import get_latest_bronze_file
 
 
 def get_clean_dataframe():
-    """
-    Load the latest Bronze dataset and run the Phase 2.2
-    cleaning/transformation pipeline.
-    """
+    fake_jobs = [
+        {
+            "id": "stats-1",
+            "title": "Python Developer",
+            "description": "Python developer",
+            "created": "2026-08-29T10:00:00Z",
+            "salary_min": 40000,
+            "salary_max": 60000,
+            "salary_is_predicted": "0",
+            "company": {"display_name": "Company A"},
+            "category": {"label": "IT Jobs", "tag": "it-jobs"},
+            "location": {
+                "display_name": "London",
+                "area": ["UK", "England", "London"],
+            },
+        },
+        {
+            "id": "stats-2",
+            "title": "Data Engineer",
+            "description": "Data engineer",
+            "created": "2026-08-29T10:00:00Z",
+            "salary_min": 50000,
+            "salary_max": 70000,
+            "salary_is_predicted": "0",
+            "company": {"display_name": "Company B"},
+            "category": {"label": "IT Jobs", "tag": "it-jobs"},
+            "location": {
+                "display_name": "Manchester",
+                "area": ["UK", "England", "Manchester"],
+            },
+        },
+        {
+            "id": "stats-3",
+            "title": "Software Engineer",
+            "description": "Software engineer",
+            "created": "2026-08-29T10:00:00Z",
+            "salary_min": 60000,
+            "salary_max": 80000,
+            "salary_is_predicted": "0",
+            "company": {"display_name": "Company C"},
+            "category": {"label": "IT Jobs", "tag": "it-jobs"},
+            "location": {
+                "display_name": "Birmingham",
+                "area": ["UK", "England", "Birmingham"],
+            },
+        },
+    ]
 
-    bronze_file = get_latest_bronze_file()
-    df = load_bronze_json(bronze_file)
+    df = pd.DataFrame(fake_jobs)
+
     return transform_dataframe(df)
 
 
@@ -201,6 +242,18 @@ def test_distribution_statistics():
 
     result = calculate_distribution_statistics(values)
 
+    print(df.shape)
+    print(
+        df[
+            [
+                "normalized_salary_min",
+                "normalized_salary_max",
+                "normalized_salary_midpoint",
+            ]
+        ]
+    )
+    print(values)
+
     print("\n" + "=" * 60)
     print("COMPLETE SALARY DISTRIBUTION")
     print("=" * 60)
@@ -223,9 +276,6 @@ def test_distribution_statistics():
 
     assert result["lower_1_std"] < result["upper_1_std"]
     assert result["lower_2_std"] < result["upper_2_std"]
-
-
-##
 
 
 def test_outlier_bounds():

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from data_pipeline.database.connection import SessionLocal
 from data_pipeline.database.models import Listing
@@ -37,13 +37,13 @@ def make_job(job_id, title="Python Developer"):
 
 
 def test_new_job_tracking():
-    now = datetime.now(timezone.utc)
+    seen_at = datetime(2026, 8, 3, 10, 0, 0)
 
     with SessionLocal() as session:
         job = Listing(
             **make_job("tracking-new"),
-            first_seen_at=now,
-            last_seen_at=now,
+            last_seen_at=seen_at,
+            first_seen_at=seen_at,
             is_active=True,
             inactive_at=None,
         )
@@ -57,8 +57,8 @@ def test_new_job_tracking():
         )
 
         assert saved is not None
-        assert saved.first_seen_at == now
-        assert saved.last_seen_at == now
+        assert saved.first_seen_at == seen_at
+        assert saved.last_seen_at == seen_at
         assert saved.is_active is True
         assert saved.inactive_at is None
 
@@ -67,7 +67,7 @@ def test_new_job_tracking():
 
 
 def test_stale_job_becomes_inactive():
-    now = datetime.now(timezone.utc)
+    now = datetime(2026, 8, 3, 10, 0, 0)
 
     old_seen = now - timedelta(days=10)
 

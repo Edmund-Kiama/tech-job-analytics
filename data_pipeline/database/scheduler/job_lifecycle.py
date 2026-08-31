@@ -13,12 +13,17 @@ def mark_stale_listings(
     now: Optional[datetime] = None,
 ) -> int:
     """
-    mMark listings inactive when they have not been seen
+    mMark active listings inactive when they have not been seen
     within the configured freshness window.
 
-    Historical records remain in SQLite.
+    Historical listings remain in the database.
     """
 
+    if stale_after_days < 0:
+        raise ValueError("stale_after_days must be >= 0")
+
+    # SQLite DateTime columns are being used as naive UTC timestamps
+    # throughout this project.
     now = now or datetime.utcnow()
 
     cutoff = now - timedelta(days=stale_after_days)
@@ -27,6 +32,7 @@ def mark_stale_listings(
         update(Listing)
         .where(
             Listing.is_active.is_(True),
+            Listing.last_seen_at.is_not(None),
             Listing.last_seen_at < cutoff,
         )
         .values(

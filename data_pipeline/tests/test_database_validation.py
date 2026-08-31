@@ -1,13 +1,22 @@
+from datetime import datetime, timezone
+
 import numpy as np
 
 # import pandas as pd
 from data_pipeline.database.connection import SessionLocal
 from data_pipeline.database.models import Listing, SalaryInsight
 from data_pipeline.processing.statistics import (
+    calculate_salary_statistics,
     # calculate_salary_statistics,
     prepare_salary_arrays,
 )
 from data_pipeline.processing.transform import transform_dataframe
+from data_pipeline.services.pipeline import (
+    _prepare_insight_stats,
+    _save_cleaned_listings,
+    build_salary_insight_record,
+)
+from data_pipeline.services.salary_insights import save_salary_insights
 from data_pipeline.storage.bronze_loader import load_bronze_json
 from data_pipeline.utils.helper import get_latest_bronze_file
 
@@ -24,15 +33,41 @@ def test_database_validation():
 
     bronze_file = get_latest_bronze_file()
     bronze_df = load_bronze_json(bronze_file)
-
     cleaned_df = transform_dataframe(bronze_df)
+
+    seen_at = datetime.now(timezone.utc)
+
+    with SessionLocal() as session:
+        _save_cleaned_listings(
+            session=session,
+            dataframe=cleaned_df,
+            seen_at=seen_at,
+        )
+
+        salary_stats = calculate_salary_statistics(cleaned_df)
+
+        flat_stats = _prepare_insight_stats(
+            cleaned_df,
+            salary_stats,
+        )
+
+        salary_insight_record = build_salary_insight_record(
+            flat_stats,
+        )
+
+        save_salary_insights(
+            session=session,
+            insights=salary_insight_record,
+            analysis_version="database-validation-test",
+        )
+
+        session.commit()
 
     # ---------------------------------------------------------
     # 2. Pandas -> NumPy -> Statistics
     # ---------------------------------------------------------
 
     arrays = prepare_salary_arrays(cleaned_df)
-
     midpoint_values = arrays["normalized_salary_midpoint"]
 
     # salary_stats = calculate_salary_statistics(cleaned_df)

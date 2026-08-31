@@ -94,8 +94,12 @@ def test_complete_pipeline(monkeypatch, tmp_path):
     ]
 
     class FakeClient:
-        def iter_jobs(self, max_pages=3):
-            return iter(fake_jobs)
+        def iter_pages(self, max_pages=3, max_jobs=None):
+            yield {
+                "page": 1,
+                "results": fake_jobs,
+                "count": len(fake_jobs),
+            }
 
     monkeypatch.setattr(
         "data_pipeline.services.pipeline.AdzunaClient",
@@ -185,8 +189,12 @@ def test_pipeline_is_idempotent(monkeypatch):
     ]
 
     class FakeClient:
-        def iter_jobs(self, max_pages=3):
-            return iter(fake_jobs)
+        def iter_pages(self, max_pages=3, max_jobs=None):
+            yield {
+                "page": 1,
+                "results": fake_jobs,
+                "count": len(fake_jobs),
+            }
 
     monkeypatch.setattr(
         "data_pipeline.services.pipeline.AdzunaClient",
@@ -252,8 +260,12 @@ def test_pipeline_creates_analysis_snapshot_each_run(monkeypatch):
     ]
 
     class FakeClient:
-        def iter_jobs(self, max_pages=3):
-            return iter(fake_jobs)
+        def iter_pages(self, max_pages=3, max_jobs=None):
+            yield {
+                "page": 1,
+                "results": fake_jobs,
+                "count": len(fake_jobs),
+            }
 
     monkeypatch.setattr(
         "data_pipeline.services.pipeline.AdzunaClient",

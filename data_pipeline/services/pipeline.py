@@ -276,9 +276,71 @@ def _prepare_insight_stats(df: pd.DataFrame, salary_stats: dict) -> dict:
     }
 
 
+# def _save_cleaned_listings(
+#     session: Session,
+#     dataframe,
+#     seen_at: datetime,
+# ) -> int:
+#     """
+#     Synchronize cleaned jobs into SQLite.
+
+#     Existing jobs are updated.
+#     New jobs are inserted.
+#     Adzuna job ID remains the deduplication key.
+
+#     Every observed job gets:
+#         last_seen_at = current ingestion time
+#         is_active = True
+#         inactive_at = None
+
+#     first_seen_at is only assigned when the job is first inserted.
+#     """
+
+#     records = dataframe.to_dict(orient="records")
+
+#     processed = 0
+
+#     for record in records:
+#         record.pop("company", None)
+#         record.pop("category", None)
+#         record.pop("location", None)
+#         record.pop("__CLASS__", None)
+
+#         job_id = record["id"]
+
+#         existing = session.execute(
+#             select(Listing).where(Listing.id == job_id)
+#         ).scalar_one_or_none()
+
+#         if existing is None:
+#             listing = Listing(
+#                 **record,
+#                 first_seen_at=seen_at,
+#                 last_seen_at=seen_at,
+#                 is_active=True,
+#                 inactive_at=None,
+#             )
+
+#             session.add(listing)
+
+#         else:
+#             for field, value in record.items():
+#                 setattr(existing, field, value)
+
+#             existing.last_seen_at = seen_at
+#             existing.is_active = True
+#             existing.inactive_at = None
+
+#         processed += 1
+
+#     session.flush()
+
+#     return processed
+
+
 def _save_cleaned_listings(
     session: Session,
-    dataframe,
+    dataframe: pd.DataFrame,
     seen_at: datetime,
 ) -> int:
     """
@@ -287,17 +349,9 @@ def _save_cleaned_listings(
     Existing jobs are updated.
     New jobs are inserted.
     Adzuna job ID remains the deduplication key.
-
-    Every observed job gets:
-        last_seen_at = current ingestion time
-        is_active = True
-        inactive_at = None
-
-    first_seen_at is only assigned when the job is first inserted.
     """
 
     records = dataframe.to_dict(orient="records")
-
     processed = 0
 
     for record in records:
@@ -306,7 +360,17 @@ def _save_cleaned_listings(
         record.pop("location", None)
         record.pop("__CLASS__", None)
 
-        job_id = record["id"]
+        # Sanitize Pandas/NumPy types into Python native types
+        clean_record = {}
+        for key, val in record.items():
+            if pd.isna(val):
+                clean_record[key] = None
+            elif isinstance(val, pd.Timestamp):
+                clean_record[key] = val.to_pydatetime()
+            else:
+                clean_record[key] = val
+
+        job_id = clean_record["id"]
 
         existing = session.execute(
             select(Listing).where(Listing.id == job_id)
@@ -314,17 +378,16 @@ def _save_cleaned_listings(
 
         if existing is None:
             listing = Listing(
-                **record,
+                **clean_record,
                 first_seen_at=seen_at,
                 last_seen_at=seen_at,
                 is_active=True,
                 inactive_at=None,
             )
-
             session.add(listing)
 
         else:
-            for field, value in record.items():
+            for field, value in clean_record.items():
                 setattr(existing, field, value)
 
             existing.last_seen_at = seen_at

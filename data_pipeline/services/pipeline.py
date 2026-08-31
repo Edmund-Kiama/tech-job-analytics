@@ -1,13 +1,18 @@
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from data_pipeline.clients.adzuna import AdzunaClient
+from data_pipeline.config import settings
 from data_pipeline.database.connection import SessionLocal
 from data_pipeline.database.models import Listing
+from data_pipeline.database.scheduler.job_lifecycle import (
+    mark_stale_listings,
+)
 from data_pipeline.processing.statistics import (
     build_salary_insight_record,
     calculate_salary_statistics,
@@ -15,7 +20,6 @@ from data_pipeline.processing.statistics import (
 from data_pipeline.processing.transform import transform_dataframe
 from data_pipeline.storage.bronze_loader import load_bronze_json
 from data_pipeline.storage.raw import save_raw_payload
-from data_pipeline.utils.console import CommentPrinter
 
 
 def run_pipeline(
@@ -43,17 +47,20 @@ def run_pipeline(
 
     client = AdzunaClient()
 
-    jobs = []
+    pages = list(
+        client.iter_pages(
+            max_pages=max_pages,
+            max_jobs=int(settings.ADZUNA_MAX_JOBS),
+        )
+    )
 
-    for job in client.iter_jobs(max_pages=max_pages):
-        jobs.append(job)
-
-    if not jobs:
-        raise ValueError("Adzuna API returned no jobs.")
+    seen_at = datetime.utcnow()
 
     payload = {
-        "results": jobs,
-        "count": len(jobs),
+        "fetched_at": seen_at.isoformat(),
+        "page_count": len(pages),
+        "job_count": sum(len(page.get("results", [])) for page in pages),
+        "pages": pages,
     }
 
     # ---------------------------------------------------------
@@ -86,6 +93,12 @@ def run_pipeline(
         listing_count = _save_cleaned_listings(
             session=session,
             dataframe=cleaned_df,
+            seen_at=seen_at,
+        )
+        inactive_count = mark_stale_listings(
+            session,
+            stale_after_days=int(settings.ADZUNA_STALE_AFTER_DAYS),
+            now=seen_at,
         )
 
         # -----------------------------------------------------
@@ -130,6 +143,10 @@ def run_pipeline(
         "listing_count": listing_count,
         "salary_insight_id": salary_insight_id,
         "analysis_version": analysis_version,
+        "inactive_count": inactive_count,
+        "jobs_ingested": len(cleaned_df),
+        "jobs_seen": len(df),
+        "jobs_fetched": payload["job_count"],
     }
 
 
@@ -261,63 +278,62 @@ def _prepare_insight_stats(df: pd.DataFrame, salary_stats: dict) -> dict:
 
 def _save_cleaned_listings(
     session: Session,
-    dataframe: pd.DataFrame,
+    dataframe,
+    seen_at: datetime,
 ) -> int:
     """
-    Persist cleaned DataFrame rows into the listings table.
+    Synchronize cleaned jobs into SQLite.
 
-    Listings are synchronized by their Adzuna ID:
-    - new IDs are inserted
-    - existing IDs are updated
-    - running the pipeline repeatedly is therefore idempotent
+    Existing jobs are updated.
+    New jobs are inserted.
+    Adzuna job ID remains the deduplication key.
+
+    Every observed job gets:
+        last_seen_at = current ingestion time
+        is_active = True
+        inactive_at = None
+
+    first_seen_at is only assigned when the job is first inserted.
     """
-
-    table = Listing.__table__
-
-    # Only allow columns that actually exist in the listings table.
-    valid_columns = {column.name for column in table.columns}
 
     records = dataframe.to_dict(orient="records")
 
-    for record in records:
-        if isinstance(record.get("created"), pd.Timestamp):
-            record["created"] = record["created"].to_pydatetime()
-
     processed = 0
 
-    for raw_record in records:
-        # Remove raw nested API objects.
-        raw_record.pop("company", None)
-        raw_record.pop("category", None)
-        raw_record.pop("location", None)
-        raw_record.pop("__CLASS__", None)
+    for record in records:
+        record.pop("company", None)
+        record.pop("category", None)
+        record.pop("location", None)
+        record.pop("__CLASS__", None)
 
-        # Keep only columns represented by Listing.
-        record = {
-            key: value for key, value in raw_record.items() if key in valid_columns
-        }
+        job_id = record["id"]
 
-        if not record.get("id"):
-            continue
+        existing = session.execute(
+            select(Listing).where(Listing.id == job_id)
+        ).scalar_one_or_none()
 
-        stmt = insert(table).values(**record)
-
-        # Do not update the primary key on conflict.
-        update_values = {key: value for key, value in record.items() if key != "id"}
-
-        if update_values:
-            stmt = stmt.on_conflict_do_update(
-                index_elements=[table.c.id],
-                set_=update_values,
+        if existing is None:
+            listing = Listing(
+                **record,
+                first_seen_at=seen_at,
+                last_seen_at=seen_at,
+                is_active=True,
+                inactive_at=None,
             )
+
+            session.add(listing)
+
         else:
-            stmt = stmt.on_conflict_do_nothing(
-                index_elements=[table.c.id],
-            )
+            for field, value in record.items():
+                setattr(existing, field, value)
 
-        session.execute(stmt)
+            existing.last_seen_at = seen_at
+            existing.is_active = True
+            existing.inactive_at = None
 
         processed += 1
+
+    session.flush()
 
     return processed
 

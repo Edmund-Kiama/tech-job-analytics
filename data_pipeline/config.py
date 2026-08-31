@@ -14,6 +14,13 @@ class Settings:
         "ADZUNA_BASE_URL",
         "https://api.adzuna.com/v1/api",
     )
+    ADZUNA_RESULTS_PER_PAGE=os.getenv("ADZUNA_RESULTS_PER_PAGE")
+    ADZUNA_MAX_JOBS=os.getenv("ADZUNA_MAX_JOBS")
+    ADZUNA_MAX_PAGES=os.getenv("ADZUNA_MAX_PAGES")
+    ADZUNA_SORT_BY=os.getenv("ADZUNA_SORT_BY")
+    ADZUNA_MAX_DAYS_OLD=os.getenv("ADZUNA_MAX_DAYS_OLD")
+    ADZUNA_STALE_AFTER_DAYS=os.getenv("ADZUNA_STALE_AFTER_DAYS")
+
 
 
 settings = Settings()

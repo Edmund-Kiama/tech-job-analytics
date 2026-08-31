@@ -1,4 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from typing import Optional
+
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
@@ -21,39 +23,170 @@ app.add_middleware(
 
 
 @app.get("/jobs")
-async def get_jobs():
+async def get_jobs(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    search: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    location: Optional[str] = Query(None),
+    contract_type: Optional[str] = Query(None),
+    contract_time: Optional[str] = Query(None),
+    min_salary: Optional[float] = Query(None, ge=0),
+    max_salary: Optional[float] = Query(None, ge=0),
+    salary_is_predicted: Optional[bool] = Query(None),
+    is_active: Optional[bool] = Query(None),
+    sort: str = Query("created_desc"),
+):
     with Session(engine) as session:
-        listings = session.query(Listing).all()
+        query = session.query(Listing)
 
-        return [
-            {
-                "id": listing.id,
-                "title": listing.title,
-                "description": listing.description,
-                "created": listing.created,
-                "redirect_url": listing.redirect_url,
-                "salary_min": listing.salary_min,
-                "salary_max": listing.salary_max,
-                "salary_is_predicted": listing.salary_is_predicted,
-                "contract_time": listing.contract_time,
-                "contract_type": listing.contract_type,
-                "company_name": listing.company_name,
-                "category_label": listing.category_label,
-                "category_tag": listing.category_tag,
-                "location_name": listing.location_name,
-                "country": listing.country,
-                "region": listing.region,
-                "city": listing.city,
-                "latitude": listing.latitude,
-                "longitude": listing.longitude,
-                "salary_currency": listing.salary_currency,
-                "salary_period": listing.salary_period,
-                "normalized_salary_min": listing.normalized_salary_min,
-                "normalized_salary_max": listing.normalized_salary_max,
-                "normalized_salary_midpoint": listing.normalized_salary_midpoint,
-            }
-            for listing in listings
-        ]
+        # ---------------------------------------------------------
+        # Search
+        # ---------------------------------------------------------
+
+        if search:
+            search_term = f"%{search.strip()}%"
+
+            query = query.filter(
+                Listing.title.ilike(search_term)
+                | Listing.company_name.ilike(search_term)
+                | Listing.description.ilike(search_term)
+            )
+
+        if category:
+            query = query.filter(Listing.category_label.ilike(category.strip()))
+
+        # ---------------------------------------------------------
+        # Location
+        # ---------------------------------------------------------
+
+        if location:
+            location_term = f"%{location.strip()}%"
+
+            query = query.filter(
+                Listing.location_name.ilike(location_term)
+                | Listing.city.ilike(location_term)
+                | Listing.region.ilike(location_term)
+                | Listing.country.ilike(location_term)
+            )
+
+        # ---------------------------------------------------------
+        # Contract type
+        # ---------------------------------------------------------
+
+        if contract_type:
+            query = query.filter(Listing.contract_type.ilike(contract_type.strip()))
+
+        # ---------------------------------------------------------
+        # Contract time
+        # ---------------------------------------------------------
+
+        if contract_time:
+            query = query.filter(Listing.contract_time.ilike(contract_time.strip()))
+
+        # ---------------------------------------------------------
+        # Salary
+        # ---------------------------------------------------------
+
+        if min_salary is not None:
+            query = query.filter(Listing.normalized_salary_max >= min_salary)
+        if max_salary is not None:
+            query = query.filter(Listing.normalized_salary_min <= max_salary)
+
+        # ---------------------------------------------------------
+        # Predicted salary
+        # ---------------------------------------------------------
+
+        if salary_is_predicted is not None:
+            query = query.filter(Listing.salary_is_predicted == salary_is_predicted)
+
+        # ---------------------------------------------------------
+        # Active / historical
+        # ---------------------------------------------------------
+
+        if is_active is not None:
+            query = query.filter(Listing.is_active == is_active)
+
+        # ---------------------------------------------------------
+        # Sorting
+        # ---------------------------------------------------------
+
+        if sort == "created_asc":
+            query = query.order_by(Listing.created.asc())
+
+        elif sort == "salary_asc":
+            query = query.order_by(Listing.normalized_salary_midpoint.asc())
+
+        elif sort == "salary_desc":
+            query = query.order_by(Listing.normalized_salary_midpoint.desc())
+
+        elif sort == "title_asc":
+            query = query.order_by(Listing.title.asc())
+
+        elif sort == "title_desc":
+            query = query.order_by(Listing.title.desc())
+
+        elif sort == "company_asc":
+            query = query.order_by(Listing.company_name.asc())
+
+        elif sort == "company_desc":
+            query = query.order_by(Listing.company_name.desc())
+
+        else:
+            # Default
+            query = query.order_by(Listing.created.desc())
+
+        # ---------------------------------------------------------
+        # Pagination
+        # ---------------------------------------------------------
+
+        total = query.count()
+
+        offset = (page - 1) * page_size
+
+        listings = query.offset(offset).limit(page_size).all()
+
+        total_pages = (total + page_size - 1) // page_size
+
+        return {
+            "items": [
+                {
+                    "id": listing.id,
+                    "title": listing.title,
+                    "description": listing.description,
+                    "created": listing.created,
+                    "redirect_url": listing.redirect_url,
+                    "salary_min": listing.salary_min,
+                    "salary_max": listing.salary_max,
+                    "salary_is_predicted": listing.salary_is_predicted,
+                    "contract_time": listing.contract_time,
+                    "contract_type": listing.contract_type,
+                    "company_name": listing.company_name,
+                    "category_label": listing.category_label,
+                    "category_tag": listing.category_tag,
+                    "location_name": listing.location_name,
+                    "country": listing.country,
+                    "region": listing.region,
+                    "city": listing.city,
+                    "latitude": listing.latitude,
+                    "longitude": listing.longitude,
+                    "salary_currency": listing.salary_currency,
+                    "salary_period": listing.salary_period,
+                    "normalized_salary_min": listing.normalized_salary_min,
+                    "normalized_salary_max": listing.normalized_salary_max,
+                    "normalized_salary_midpoint": listing.normalized_salary_midpoint,
+                    "first_seen_at": listing.first_seen_at,
+                    "last_seen_at": listing.last_seen_at,
+                    "is_active": listing.is_active,
+                    "inactive_at": listing.inactive_at,
+                }
+                for listing in listings
+            ],
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        }
 
 
 @app.get("/analytics/summary")

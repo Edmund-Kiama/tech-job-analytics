@@ -27,6 +27,11 @@ def test_database_validation():
     Pandas/NumPy analytical results from the latest Bronze dataset.
     """
 
+    with SessionLocal() as session:
+        session.query(SalaryInsight).delete()
+        session.query(Listing).delete()
+        session.commit()
+
     # ---------------------------------------------------------
     # 1. Bronze -> Pandas
     # ---------------------------------------------------------

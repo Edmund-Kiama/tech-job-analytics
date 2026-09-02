@@ -41,12 +41,14 @@ def test_database_validation():
     cleaned_df = transform_dataframe(bronze_df)
 
     seen_at = datetime.now(timezone.utc)
+    ingestion_run_id = "test-ingestion-run"
 
     with SessionLocal() as session:
         _save_cleaned_listings(
             session=session,
             dataframe=cleaned_df,
             seen_at=seen_at,
+            ingestion_run_id=ingestion_run_id,
         )
 
         salary_stats = calculate_salary_statistics(cleaned_df)

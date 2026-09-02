@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
-from typing import Optional
+from datetime import datetime, timezone
+from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,6 +14,30 @@ from data_pipeline.database.models import (
     SalaryInsight,
 )
 from data_pipeline.database.scheduler.main_scheduler import start_scheduler
+from data_pipeline.services.job_prioritization import (
+    PrioritizationProfile,
+    score_listing,
+)
+
+
+def build_prioritization_profile(
+    target_titles: Optional[str],
+    preferred_categories: Optional[str],
+    preferred_locations: Optional[str],
+    preferred_contract_types: Optional[str],
+):
+    def split_values(value):
+        if not value:
+            return []
+
+        return [item.strip() for item in value.split(",") if item.strip()]
+
+    return PrioritizationProfile(
+        target_titles=split_values(target_titles),
+        preferred_categories=split_values(preferred_categories),
+        preferred_locations=split_values(preferred_locations),
+        preferred_contract_types=split_values(preferred_contract_types),
+    )
 
 
 @asynccontextmanager
@@ -247,6 +272,166 @@ async def get_job(job_id: str):
             "last_seen_at": listing.last_seen_at,
             "is_active": listing.is_active,
             "inactive_at": listing.inactive_at,
+        }
+
+
+@app.get("/analytics/prioritization/{job_id}")
+async def get_job_prioritization(
+    job_id: str,
+    target_titles: Optional[str] = Query(
+        None,
+        description=("Comma-separated target job titles."),
+    ),
+    preferred_categories: Optional[str] = Query(
+        None,
+        description=("Comma-separated preferred categories."),
+    ),
+    preferred_locations: Optional[str] = Query(
+        None,
+        description=("Comma-separated preferred locations."),
+    ),
+    preferred_contract_types: Optional[str] = Query(
+        None,
+        description=("Comma-separated preferred contract types."),
+    ),
+):
+    with Session(engine) as session:
+        listing = session.query(Listing).filter(Listing.id == job_id).first()
+
+        if listing is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Job with ID '{job_id}' not found.",
+            )
+
+        reference_salaries = [
+            value[0]
+            for value in (
+                session.query(Listing.normalized_salary_midpoint)
+                .filter(
+                    Listing.is_active.is_(True),
+                    Listing.normalized_salary_midpoint.isnot(None),
+                )
+                .all()
+            )
+        ]
+
+        profile = build_prioritization_profile(
+            target_titles,
+            preferred_categories,
+            preferred_locations,
+            preferred_contract_types,
+        )
+
+        prioritization = score_listing(
+            listing=listing,
+            reference_salaries=reference_salaries,
+            profile=profile,
+        )
+
+        return {
+            "job": {
+                "id": listing.id,
+                "title": listing.title,
+                "company_name": listing.company_name,
+                "category_label": listing.category_label,
+                "location_name": listing.location_name,
+                "salary": listing.normalized_salary_midpoint,
+                "salary_min": listing.normalized_salary_min,
+                "salary_max": listing.normalized_salary_max,
+                "contract_type": listing.contract_type,
+                "created": listing.created,
+                "redirect_url": listing.redirect_url,
+            },
+            **prioritization,
+        }
+
+
+@app.get("/analytics/prioritization")
+async def get_prioritized_jobs(
+    target_titles: Optional[str] = Query(None),
+    preferred_categories: Optional[str] = Query(None),
+    preferred_locations: Optional[str] = Query(None),
+    preferred_contract_types: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    with Session(engine) as session:
+        jobs = session.query(Listing).filter(Listing.is_active.is_(True)).all()
+
+        if not jobs:
+            return {
+                "page": page,
+                "page_size": page_size,
+                "total": 0,
+                "jobs": [],
+            }
+
+        reference_salaries = [
+            job.normalized_salary_midpoint
+            for job in jobs
+            if job.normalized_salary_midpoint is not None
+        ]
+
+        profile = build_prioritization_profile(
+            target_titles,
+            preferred_categories,
+            preferred_locations,
+            preferred_contract_types,
+        )
+
+        scored_jobs = []
+
+        for job in jobs:
+            prioritization = score_listing(
+                listing=job,
+                reference_salaries=reference_salaries,
+                profile=profile,
+            )
+
+            scored_jobs.append(
+                {
+                    "id": job.id,
+                    "title": job.title,
+                    "company_name": job.company_name,
+                    "category_label": job.category_label,
+                    "location_name": job.location_name,
+                    "salary": job.normalized_salary_midpoint,
+                    "salary_min": job.normalized_salary_min,
+                    "salary_max": job.normalized_salary_max,
+                    "contract_type": job.contract_type,
+                    "created": job.created,
+                    "redirect_url": job.redirect_url,
+                    **prioritization,
+                }
+            )
+
+        scored_jobs.sort(
+            key=lambda job: (
+                job["priority_score"],
+                job["salary"] or 0,
+            ),
+            reverse=True,
+        )
+
+        total = len(scored_jobs)
+
+        start = (page - 1) * page_size
+        end = start + page_size
+
+        paginated_jobs = scored_jobs[start:end]
+
+        for index, job in enumerate(
+            paginated_jobs,
+            start=start + 1,
+        ):
+            job["rank"] = index
+
+        return {
+            "page": page,
+            "page_size": page_size,
+            "total": total,
+            "jobs": paginated_jobs,
         }
 
 
@@ -734,6 +919,94 @@ async def get_analytics_breakdown():
             "contract_time": contract_time,
             "contract_type": contract_type,
             "salary_prediction": salary_prediction,
+        }
+
+
+@app.get("/analytics/categories")
+async def get_categories():
+    with Session(engine) as session:
+        categories = (
+            session.query(Listing.category_label)
+            .filter(Listing.category_label.isnot(None))
+            .distinct()
+            .order_by(Listing.category_label.asc())
+            .all()
+        )
+
+        return {"categories": [category[0] for category in categories]}
+
+
+@app.get("/analytics/categories/{category}")
+async def get_category_analytics(category: str):
+    with Session(engine) as session:
+        jobs = (
+            session.query(Listing)
+            .filter(
+                Listing.category_label == category,
+                Listing.is_active.is_(True),
+            )
+            .all()
+        )
+
+        if not jobs:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Category '{category}' not found.",
+            )
+
+        salaries = [
+            job.normalized_salary_midpoint
+            for job in jobs
+            if job.normalized_salary_midpoint is not None
+        ]
+
+        salary = {
+            "mean": None,
+            "median": None,
+            "minimum": None,
+            "maximum": None,
+        }
+
+        if salaries:
+            import numpy as np
+
+            salary = {
+                "mean": float(np.mean(salaries)),
+                "median": float(np.median(salaries)),
+                "minimum": float(np.min(salaries)),
+                "maximum": float(np.max(salaries)),
+            }
+
+        top_jobs = sorted(
+            jobs,
+            key=lambda job: (
+                job.normalized_salary_midpoint
+                if job.normalized_salary_midpoint is not None
+                else float("-inf")
+            ),
+            reverse=True,
+        )[:10]
+
+        return {
+            "category": category,
+            "job_count": len(jobs),
+            "salary": salary,
+            "top_jobs": [
+                {
+                    "rank": rank,
+                    "id": job.id,
+                    "title": job.title,
+                    "company_name": job.company_name,
+                    "location_name": job.location_name,
+                    "salary": job.normalized_salary_midpoint,
+                    "salary_min": job.normalized_salary_min,
+                    "salary_max": job.normalized_salary_max,
+                    "salary_is_predicted": job.salary_is_predicted,
+                    "created": job.created,
+                    "redirect_url": job.redirect_url,
+                }
+                for rank, job in enumerate(top_jobs, start=1)
+            ],
         }
 
 

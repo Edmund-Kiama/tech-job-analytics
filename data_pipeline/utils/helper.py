@@ -9,3 +9,4 @@ def get_latest_bronze_file() -> Path:
         raise FileNotFoundError("No Bronze JSON files found in data/bronze.")
 
     return files[-1]
+

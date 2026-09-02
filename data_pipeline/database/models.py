@@ -1,7 +1,16 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -130,3 +139,195 @@ class SalaryInsight(Base):
         nullable=False,
         default="2.3",
     )
+
+
+class IngestionRun(Base):
+    __tablename__ = "ingestion_runs"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    status: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+    )
+
+    rows_fetched: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    rows_before_cleaning: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    rows_after_cleaning: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    jobs_inserted: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    jobs_updated: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    jobs_inactivated: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    salary_insight_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    bronze_path: Mapped[Optional[str]] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    analysis_version: Mapped[Optional[str]] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    error_message: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+
+class ListingHistory(Base):
+    __tablename__ = "listing_history"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    listing_id: Mapped[str] = mapped_column(
+        String,
+        ForeignKey("listings.id"),
+        nullable=False,
+    )
+
+    ingestion_run_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("ingestion_runs.id"),
+        nullable=False,
+    )
+
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    title: Mapped[str] = mapped_column(String, nullable=False)
+
+    salary_min: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    salary_max: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    salary_is_predicted: Mapped[Optional[bool]] = mapped_column(
+        Boolean,
+        nullable=True,
+    )
+
+    normalized_salary_min: Mapped[Optional[float]] = mapped_column(
+        Float,
+        nullable=True,
+    )
+
+    normalized_salary_max: Mapped[Optional[float]] = mapped_column(
+        Float,
+        nullable=True,
+    )
+
+    normalized_salary_midpoint: Mapped[Optional[float]] = mapped_column(
+        Float,
+        nullable=True,
+    )
+
+    contract_time: Mapped[Optional[str]] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    contract_type: Mapped[Optional[str]] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    company_name: Mapped[Optional[str]] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    category_label: Mapped[Optional[str]] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    category_tag: Mapped[Optional[str]] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    location_name: Mapped[Optional[str]] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+    )
+
+
+Index(
+    "ix_listing_history_listing_id_observed_at",
+    ListingHistory.listing_id,
+    ListingHistory.observed_at,
+)
+
+Index(
+    "ix_listing_history_ingestion_run_id",
+    ListingHistory.ingestion_run_id,
+)
+
+Index(
+    "ix_ingestion_runs_started_at",
+    IngestionRun.started_at,
+)

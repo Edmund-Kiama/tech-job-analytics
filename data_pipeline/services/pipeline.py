@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -9,7 +10,7 @@ from sqlalchemy.orm import Session
 from data_pipeline.clients.adzuna import AdzunaClient
 from data_pipeline.config import settings
 from data_pipeline.database.connection import SessionLocal
-from data_pipeline.database.models import Listing
+from data_pipeline.database.models import IngestionRun, Listing, ListingHistory
 from data_pipeline.database.scheduler.job_lifecycle import (
     mark_stale_listings,
 )
@@ -21,133 +22,327 @@ from data_pipeline.processing.transform import transform_dataframe
 from data_pipeline.storage.bronze_loader import load_bronze_json
 from data_pipeline.storage.raw import save_raw_payload
 
+# def run_pipeline(
+#     max_pages: int = 3,
+#     analysis_version: str = "2.3",
+# ) -> dict:
+#     """
+#     Run the complete Phase 2 data pipeline.
+
+#     Flow:
+#         Adzuna API
+#         -> Bronze JSON
+#         -> Pandas DataFrame
+#         -> Cleaning
+#         -> SQLite listings
+#         -> NumPy statistics
+#         -> SQLite salary_insights
+
+#     Returns a summary of the pipeline execution.
+#     """
+
+#     # ---------------------------------------------------------
+#     # 1. Extract from Adzuna
+#     # ---------------------------------------------------------
+
+#     client = AdzunaClient()
+
+#     pages = list(
+#         client.iter_pages(
+#             max_pages=max_pages,
+#             max_jobs=int(settings.ADZUNA_MAX_JOBS),
+#         )
+#     )
+
+#     seen_at = datetime.utcnow()
+
+#     payload = {
+#         "fetched_at": seen_at.isoformat(),
+#         "page_count": len(pages),
+#         "job_count": sum(len(page.get("results", [])) for page in pages),
+#         "pages": pages,
+#     }
+
+#     # ---------------------------------------------------------
+#     # 2. Store immutable Bronze snapshot
+#     # ---------------------------------------------------------
+
+#     bronze_path = save_raw_payload(payload)
+
+#     # ---------------------------------------------------------
+#     # 3. Load Bronze JSON into Pandas
+#     # ---------------------------------------------------------
+
+#     df = load_bronze_json(bronze_path)
+
+#     rows_before_cleaning = len(df)
+
+#     # ---------------------------------------------------------
+#     # 4. Clean / transform
+#     # ---------------------------------------------------------
+
+#     cleaned_df = transform_dataframe(df)
+
+#     rows_after_cleaning = len(cleaned_df)
+
+#     # ---------------------------------------------------------
+#     # 5. Persist cleaned listings
+#     # ---------------------------------------------------------
+
+#     with SessionLocal() as session:
+#         listing_count = _save_cleaned_listings(
+#             session=session,
+#             dataframe=cleaned_df,
+#             seen_at=seen_at,
+#         )
+#         inactive_count = mark_stale_listings(
+#             session,
+#             stale_after_days=int(settings.ADZUNA_STALE_AFTER_DAYS),
+#             now=seen_at,
+#         )
+
+#         # -----------------------------------------------------
+#         # 6. Calculate NumPy salary statistics
+#         # -----------------------------------------------------
+
+#         salary_stats = calculate_salary_statistics(cleaned_df)
+#         flat_stats = _prepare_insight_stats(cleaned_df, salary_stats)
+
+#         # -----------------------------------------------------
+#         # 7. Convert statistics into database-ready values
+#         # -----------------------------------------------------
+
+#         salary_insight_record = build_salary_insight_record(flat_stats)
+
+#         # -----------------------------------------------------
+#         # 8. Persist analytical snapshot
+#         # -----------------------------------------------------
+
+#         from data_pipeline.services.salary_insights import (
+#             save_salary_insights,
+#         )
+
+#         salary_insight = save_salary_insights(
+#             session=session,
+#             insights=salary_insight_record,
+#             analysis_version=analysis_version,
+#         )
+
+#         session.commit()
+
+#         salary_insight_id = salary_insight.id
+
+#     # ---------------------------------------------------------
+#     # 9. Return execution summary
+#     # ---------------------------------------------------------
+
+#     return {
+#         "bronze_path": Path(bronze_path),
+#         "rows_before_cleaning": rows_before_cleaning,
+#         "rows_after_cleaning": rows_after_cleaning,
+#         "listing_count": listing_count,
+#         "salary_insight_id": salary_insight_id,
+#         "analysis_version": analysis_version,
+#         "inactive_count": inactive_count,
+#         "jobs_ingested": len(cleaned_df),
+#         "jobs_seen": len(df),
+#         "jobs_fetched": payload["job_count"],
+#     }
+
 
 def run_pipeline(
-    max_pages: int = 3,
-    analysis_version: str = "2.3",
+    max_pages: Optional[int] = None,
+    analysis_version: Optional[str] = None,
 ) -> dict:
     """
-    Run the complete Phase 2 data pipeline.
+    Run the complete data pipeline with ingestion tracking.
 
     Flow:
-        Adzuna API
-        -> Bronze JSON
-        -> Pandas DataFrame
-        -> Cleaning
-        -> SQLite listings
-        -> NumPy statistics
-        -> SQLite salary_insights
 
-    Returns a summary of the pipeline execution.
+        Adzuna API
+            ↓
+        Bronze JSON
+            ↓
+        Pandas
+            ↓
+        SQLite listings
+            ↓
+        ListingHistory
+            ↓
+        NumPy statistics
+            ↓
+        SalaryInsight
+            ↓
+        IngestionRun completion
     """
 
-    # ---------------------------------------------------------
-    # 1. Extract from Adzuna
-    # ---------------------------------------------------------
-
-    client = AdzunaClient()
-
-    pages = list(
-        client.iter_pages(
-            max_pages=max_pages,
-            max_jobs=int(settings.ADZUNA_MAX_JOBS),
-        )
-    )
-
-    seen_at = datetime.utcnow()
-
-    payload = {
-        "fetched_at": seen_at.isoformat(),
-        "page_count": len(pages),
-        "job_count": sum(len(page.get("results", [])) for page in pages),
-        "pages": pages,
-    }
+    started_at = datetime.now(timezone.utc)
 
     # ---------------------------------------------------------
-    # 2. Store immutable Bronze snapshot
-    # ---------------------------------------------------------
-
-    bronze_path = save_raw_payload(payload)
-
-    # ---------------------------------------------------------
-    # 3. Load Bronze JSON into Pandas
-    # ---------------------------------------------------------
-
-    df = load_bronze_json(bronze_path)
-
-    rows_before_cleaning = len(df)
-
-    # ---------------------------------------------------------
-    # 4. Clean / transform
-    # ---------------------------------------------------------
-
-    cleaned_df = transform_dataframe(df)
-
-    rows_after_cleaning = len(cleaned_df)
-
-    # ---------------------------------------------------------
-    # 5. Persist cleaned listings
+    # 1. Create ingestion run
     # ---------------------------------------------------------
 
     with SessionLocal() as session:
-        listing_count = _save_cleaned_listings(
+        ingestion_run = create_ingestion_run(
             session=session,
-            dataframe=cleaned_df,
-            seen_at=seen_at,
-        )
-        inactive_count = mark_stale_listings(
-            session,
-            stale_after_days=int(settings.ADZUNA_STALE_AFTER_DAYS),
-            now=seen_at,
-        )
-
-        # -----------------------------------------------------
-        # 6. Calculate NumPy salary statistics
-        # -----------------------------------------------------
-
-        salary_stats = calculate_salary_statistics(cleaned_df)
-        flat_stats = _prepare_insight_stats(cleaned_df, salary_stats)
-
-        # -----------------------------------------------------
-        # 7. Convert statistics into database-ready values
-        # -----------------------------------------------------
-
-        salary_insight_record = build_salary_insight_record(flat_stats)
-
-        # -----------------------------------------------------
-        # 8. Persist analytical snapshot
-        # -----------------------------------------------------
-
-        from data_pipeline.services.salary_insights import (
-            save_salary_insights,
-        )
-
-        salary_insight = save_salary_insights(
-            session=session,
-            insights=salary_insight_record,
+            started_at=started_at,
             analysis_version=analysis_version,
         )
 
+        ingestion_run_id = ingestion_run.id
+
         session.commit()
 
-        salary_insight_id = salary_insight.id
+    try:
+        # ---------------------------------------------------------
+        # 2. Extract from Adzuna
+        # ---------------------------------------------------------
 
-    # ---------------------------------------------------------
-    # 9. Return execution summary
-    # ---------------------------------------------------------
+        client = AdzunaClient()
 
-    return {
-        "bronze_path": Path(bronze_path),
-        "rows_before_cleaning": rows_before_cleaning,
-        "rows_after_cleaning": rows_after_cleaning,
-        "listing_count": listing_count,
-        "salary_insight_id": salary_insight_id,
-        "analysis_version": analysis_version,
-        "inactive_count": inactive_count,
-        "jobs_ingested": len(cleaned_df),
-        "jobs_seen": len(df),
-        "jobs_fetched": payload["job_count"],
-    }
+        jobs = []
+
+        for job in client.iter_jobs(
+            max_pages=max_pages, max_jobs=int(settings.ADZUNA_MAX_JOBS)
+        ):
+            jobs.append(job)
+
+        if not jobs:
+            raise ValueError("Adzuna API returned no jobs.")
+
+        rows_fetched = len(jobs)
+
+        payload = {
+            "results": jobs,
+            "count": rows_fetched,
+        }
+
+        # ---------------------------------------------------------
+        # 3. Store immutable Bronze snapshot
+        # ---------------------------------------------------------
+
+        bronze_path = save_raw_payload(payload)
+
+        # ---------------------------------------------------------
+        # 4. Load Bronze
+        # ---------------------------------------------------------
+
+        df = load_bronze_json(bronze_path)
+
+        rows_before_cleaning = len(df)
+
+        # ---------------------------------------------------------
+        # 5. Clean / transform
+        # ---------------------------------------------------------
+
+        cleaned_df = transform_dataframe(df)
+
+        rows_after_cleaning = len(cleaned_df)
+
+        seen_at = datetime.now(timezone.utc)
+
+        # ---------------------------------------------------------
+        # 6. Persist listings + history
+        # ---------------------------------------------------------
+
+        with SessionLocal() as session:
+            sync_result = _save_cleaned_listings(
+                session=session,
+                dataframe=cleaned_df,
+                ingestion_run_id=ingestion_run_id,
+                seen_at=seen_at,
+                stale_after_days=int(settings.ADZUNA_STALE_AFTER_DAYS),
+            )
+
+            # -----------------------------------------------------
+            # 7. Calculate salary statistics
+            # -----------------------------------------------------
+
+            salary_stats = calculate_salary_statistics(cleaned_df)
+
+            flat_stats = _prepare_insight_stats(
+                cleaned_df,
+                salary_stats,
+            )
+
+            salary_insight_record = build_salary_insight_record(flat_stats)
+
+            # -----------------------------------------------------
+            # 8. Save salary analytics snapshot
+            # -----------------------------------------------------
+
+            from data_pipeline.services.salary_insights import (
+                save_salary_insights,
+            )
+
+            salary_insight = save_salary_insights(
+                session=session,
+                insights=salary_insight_record,
+                analysis_version=analysis_version,
+            )
+
+            # -----------------------------------------------------
+            # 9. Complete ingestion run
+            # -----------------------------------------------------
+
+            ingestion_run = session.execute(
+                select(IngestionRun).where(IngestionRun.id == ingestion_run_id)
+            ).scalar_one()
+
+            ingestion_run.completed_at = datetime.now(timezone.utc)
+
+            ingestion_run.status = "success"
+
+            ingestion_run.rows_fetched = rows_fetched
+            ingestion_run.rows_before_cleaning = rows_before_cleaning
+            ingestion_run.rows_after_cleaning = rows_after_cleaning
+
+            ingestion_run.jobs_inserted = sync_result["inserted"]
+
+            ingestion_run.jobs_updated = sync_result["updated"]
+
+            ingestion_run.jobs_inactivated = sync_result["inactivated"]
+
+            ingestion_run.salary_insight_id = salary_insight.id
+
+            ingestion_run.bronze_path = str(bronze_path)
+
+            session.commit()
+
+            return {
+                "ingestion_run_id": ingestion_run.id,
+                "status": ingestion_run.status,
+                "bronze_path": Path(bronze_path),
+                "rows_fetched": rows_fetched,
+                "rows_before_cleaning": rows_before_cleaning,
+                "rows_after_cleaning": rows_after_cleaning,
+                "jobs_inserted": sync_result["inserted"],
+                "jobs_updated": sync_result["updated"],
+                "jobs_inactivated": sync_result["inactivated"],
+                "salary_insight_id": salary_insight.id,
+                "analysis_version": analysis_version,
+            }
+
+    except Exception as exc:
+        # ---------------------------------------------------------
+        # Record failed ingestion
+        # ---------------------------------------------------------
+
+        with SessionLocal() as session:
+            ingestion_run = session.execute(
+                select(IngestionRun).where(IngestionRun.id == ingestion_run_id)
+            ).scalar_one_or_none()
+
+            if ingestion_run is not None:
+                ingestion_run.completed_at = datetime.now(timezone.utc)
+
+                ingestion_run.status = "failed"
+
+                ingestion_run.error_message = str(exc)
+
+                session.commit()
+
+        raise
 
 
 def _prepare_insight_stats(df: pd.DataFrame, salary_stats: dict) -> dict:
@@ -276,9 +471,157 @@ def _prepare_insight_stats(df: pd.DataFrame, salary_stats: dict) -> dict:
     }
 
 
+def _save_cleaned_listings(
+    session: Session,
+    dataframe: pd.DataFrame,
+    ingestion_run_id: int,
+    seen_at: datetime,
+    stale_after_days: int = int(settings.ADZUNA_STALE_AFTER_DAYS),
+) -> dict:
+    """
+    Synchronize cleaned jobs into SQLite.
+
+    Features:
+      - Bulk fetches existing listings to prevent N+1 query bottlenecks.
+      - Uses time-decay thresholding for inactivation to protect against false-positive
+        inactivations during partial pipeline runs.
+
+    Returns:
+        inserted: number of new listings
+        updated: number of existing listings
+        inactivated: number of listings marked stale/inactive
+    """
+    records = dataframe.to_dict(orient="records")
+    if not records:
+        return {"inserted": 0, "updated": 0, "inactivated": 0}
+
+    # 1. Collect all incoming IDs to fetch existing listings in a single query
+    incoming_ids = {record["id"] for record in records}
+
+    # 2. Bulk fetch existing listings matching the incoming batch (1 query vs N queries)
+    existing_listings = {
+        listing.id: listing
+        for listing in session.execute(
+            select(Listing).where(Listing.id.in_(incoming_ids))
+        )
+        .scalars()
+        .all()
+    }
+
+    inserted = 0
+    updated = 0
+
+    for record in records:
+        # Clean relational or meta keys not present directly on the model
+        record.pop("company", None)
+        record.pop("category", None)
+        record.pop("location", None)
+        record.pop("__CLASS__", None)
+
+        clean_record = {}
+        for key, val in record.items():
+            if pd.isna(val):
+                clean_record[key] = None
+            elif isinstance(val, pd.Timestamp):
+                clean_record[key] = val.to_pydatetime()
+            else:
+                clean_record[key] = val
+
+        job_id = clean_record["id"]
+        existing = existing_listings.get(job_id)
+
+        if existing is None:
+            # Insert new Listing
+            listing = Listing(
+                **clean_record,
+                first_seen_at=seen_at,
+                last_seen_at=seen_at,
+                is_active=True,
+                inactive_at=None,
+            )
+            session.add(listing)
+            inserted += 1
+        else:
+            # Update existing Listing
+            for field, value in clean_record.items():
+                setattr(existing, field, value)
+
+            existing.last_seen_at = seen_at
+            existing.is_active = True
+            existing.inactive_at = None
+            updated += 1
+
+        # Create immutable history snapshot for audit tracking
+        listing_snapshot = ListingHistory(
+            listing_id=job_id,
+            ingestion_run_id=ingestion_run_id,
+            observed_at=seen_at,
+            title=clean_record.get("title"),
+            salary_min=clean_record.get("salary_min"),
+            salary_max=clean_record.get("salary_max"),
+            salary_is_predicted=clean_record.get("salary_is_predicted"),
+            normalized_salary_min=clean_record.get("normalized_salary_min"),
+            normalized_salary_max=clean_record.get("normalized_salary_max"),
+            normalized_salary_midpoint=clean_record.get("normalized_salary_midpoint"),
+            contract_time=clean_record.get("contract_time"),
+            contract_type=clean_record.get("contract_type"),
+            company_name=clean_record.get("company_name"),
+            category_label=clean_record.get("category_label"),
+            category_tag=clean_record.get("category_tag"),
+            location_name=clean_record.get("location_name"),
+            is_active=True,
+        )
+        session.add(listing_snapshot)
+
+    # ---------------------------------------------------------
+    # 3. Time-Decay Inactivation (Safe Inactivation)
+    # ---------------------------------------------------------
+    # Inside _save_cleaned_listings:
+    inactivated = mark_stale_listings(
+        session=session,
+        stale_after_days=stale_after_days,
+        now=seen_at,
+    )
+
+    session.flush()
+
+    return {
+        "inserted": inserted,
+        "updated": updated,
+        "inactivated": inactivated,
+    }
+
+
+def create_ingestion_run(
+    session: Session,
+    started_at: datetime,
+    analysis_version: str,
+) -> IngestionRun:
+    """
+    Create a new ingestion run in RUNNING state.
+    """
+
+    run = IngestionRun(
+        started_at=started_at,
+        status="running",
+        rows_fetched=0,
+        rows_before_cleaning=0,
+        rows_after_cleaning=0,
+        jobs_inserted=0,
+        jobs_updated=0,
+        jobs_inactivated=0,
+        analysis_version=analysis_version,
+    )
+
+    session.add(run)
+    session.flush()
+
+    return run
+
+
 # def _save_cleaned_listings(
 #     session: Session,
-#     dataframe,
+#     dataframe: pd.DataFrame,
 #     seen_at: datetime,
 # ) -> int:
 #     """
@@ -287,17 +630,9 @@ def _prepare_insight_stats(df: pd.DataFrame, salary_stats: dict) -> dict:
 #     Existing jobs are updated.
 #     New jobs are inserted.
 #     Adzuna job ID remains the deduplication key.
-
-#     Every observed job gets:
-#         last_seen_at = current ingestion time
-#         is_active = True
-#         inactive_at = None
-
-#     first_seen_at is only assigned when the job is first inserted.
 #     """
 
 #     records = dataframe.to_dict(orient="records")
-
 #     processed = 0
 
 #     for record in records:
@@ -306,7 +641,17 @@ def _prepare_insight_stats(df: pd.DataFrame, salary_stats: dict) -> dict:
 #         record.pop("location", None)
 #         record.pop("__CLASS__", None)
 
-#         job_id = record["id"]
+#         # Sanitize Pandas/NumPy types into Python native types
+#         clean_record = {}
+#         for key, val in record.items():
+#             if pd.isna(val):
+#                 clean_record[key] = None
+#             elif isinstance(val, pd.Timestamp):
+#                 clean_record[key] = val.to_pydatetime()
+#             else:
+#                 clean_record[key] = val
+
+#         job_id = clean_record["id"]
 
 #         existing = session.execute(
 #             select(Listing).where(Listing.id == job_id)
@@ -314,17 +659,16 @@ def _prepare_insight_stats(df: pd.DataFrame, salary_stats: dict) -> dict:
 
 #         if existing is None:
 #             listing = Listing(
-#                 **record,
+#                 **clean_record,
 #                 first_seen_at=seen_at,
 #                 last_seen_at=seen_at,
 #                 is_active=True,
 #                 inactive_at=None,
 #             )
-
 #             session.add(listing)
 
 #         else:
-#             for field, value in record.items():
+#             for field, value in clean_record.items():
 #                 setattr(existing, field, value)
 
 #             existing.last_seen_at = seen_at
@@ -338,75 +682,8 @@ def _prepare_insight_stats(df: pd.DataFrame, salary_stats: dict) -> dict:
 #     return processed
 
 
-def _save_cleaned_listings(
-    session: Session,
-    dataframe: pd.DataFrame,
-    seen_at: datetime,
-) -> int:
-    """
-    Synchronize cleaned jobs into SQLite.
-
-    Existing jobs are updated.
-    New jobs are inserted.
-    Adzuna job ID remains the deduplication key.
-    """
-
-    records = dataframe.to_dict(orient="records")
-    processed = 0
-
-    for record in records:
-        record.pop("company", None)
-        record.pop("category", None)
-        record.pop("location", None)
-        record.pop("__CLASS__", None)
-
-        # Sanitize Pandas/NumPy types into Python native types
-        clean_record = {}
-        for key, val in record.items():
-            if pd.isna(val):
-                clean_record[key] = None
-            elif isinstance(val, pd.Timestamp):
-                clean_record[key] = val.to_pydatetime()
-            else:
-                clean_record[key] = val
-
-        job_id = clean_record["id"]
-
-        existing = session.execute(
-            select(Listing).where(Listing.id == job_id)
-        ).scalar_one_or_none()
-
-        if existing is None:
-            listing = Listing(
-                **clean_record,
-                first_seen_at=seen_at,
-                last_seen_at=seen_at,
-                is_active=True,
-                inactive_at=None,
-            )
-            session.add(listing)
-
-        else:
-            for field, value in clean_record.items():
-                setattr(existing, field, value)
-
-            existing.last_seen_at = seen_at
-            existing.is_active = True
-            existing.inactive_at = None
-
-        processed += 1
-
-    session.flush()
-
-    return processed
-
-
 if __name__ == "__main__":
-    result = run_pipeline(max_pages=3)
-
-    # print("=" * 60)
-    # print("PIPELINE COMPLETE")
-    # print("=" * 60)
-
-    # for key, value in result.items():
-    #     print(f"{key}: {value}")
+    result = run_pipeline(
+        max_pages=int(settings.ADZUNA_MAX_PAGES),
+        analysis_version=settings.ADZUNA_ANALYSIS_VERSION,
+    )

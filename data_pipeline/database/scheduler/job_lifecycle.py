@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
-from typing import Optional
 
-from sqlalchemy import update
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from data_pipeline.database.models import Listing
@@ -10,37 +9,31 @@ from data_pipeline.database.models import Listing
 def mark_stale_listings(
     session: Session,
     stale_after_days: int,
-    now: Optional[datetime] = None,
+    now: datetime,
 ) -> int:
     """
-    mMark active listings inactive when they have not been seen
-    within the configured freshness window.
-
-    Historical listings remain in the database.
+    mMark active listings as inactive if they haven't been seen
+    within the stale threshold window.
     """
-
-    if stale_after_days < 0:
-        raise ValueError("stale_after_days must be >= 0")
-
-    # SQLite DateTime columns are being used as naive UTC timestamps
-    # throughout this project.
     now = now or datetime.utcnow()
 
-    cutoff = now - timedelta(days=stale_after_days)
+    stale_threshold = now - timedelta(days=stale_after_days)
 
-    statement = (
-        update(Listing)
-        .where(
-            Listing.is_active.is_(True),
-            Listing.last_seen_at.is_not(None),
-            Listing.last_seen_at < cutoff,
+    stale_listings = (
+        session.execute(
+            select(Listing).where(
+                Listing.is_active.is_(True),
+                Listing.last_seen_at < stale_threshold,
+            )
         )
-        .values(
-            is_active=False,
-            inactive_at=now,
-        )
+        .scalars()
+        .all()
     )
 
-    result = session.execute(statement)
+    inactivated = 0
+    for listing in stale_listings:
+        listing.is_active = False
+        listing.inactive_at = now
+        inactivated += 1
 
-    return result.rowcount
+    return inactivated

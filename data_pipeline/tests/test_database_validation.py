@@ -38,7 +38,9 @@ def test_database_validation():
 
     bronze_file = get_latest_bronze_file()
     bronze_df = load_bronze_json(bronze_file)
-    cleaned_df = transform_dataframe(bronze_df)
+    cleaned_df = transform_dataframe(bronze_df).drop_duplicates(
+        subset=["id"], keep="last"
+    )
 
     seen_at = datetime.now(timezone.utc)
     ingestion_run_id = "test-ingestion-run"

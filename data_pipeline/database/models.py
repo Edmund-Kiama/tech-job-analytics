@@ -87,6 +87,32 @@ class Listing(Base):
         nullable=True,
     )
 
+    application_status: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="NEW",
+    )
+    saved_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    applied_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    follow_up_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    user_priority: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    application_notes: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
 
 class SalaryInsight(Base):
     __tablename__ = "salary_insights"

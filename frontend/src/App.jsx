@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { getJobs, getSalaryAnalytics, getAnalyticsSummary } from './api';
+import ApplicationsPage from './components/ApplicationsPage';
+import ApplicationTracker from './components/ApplicationTracker';
+import JobApplicationActions from './components/JobApplicationActions';
 
-const DEFAULT_PAGE_SIZE = 25;
+const DEFAULT_PAGE_SIZE = parseInt(import.meta.env.VITE_DEFAULT_PAGE_SIZE, 10);
 
 function useTheme() {
   const [theme, setTheme] = useState(() => {
@@ -307,6 +310,35 @@ function App() {
             <ThemeSwitcher theme={theme} setTheme={setTheme} />
           </div>
         </header>
+        {/* =====================================================
+            APPLICATIONS TRACKER
+        ====================================================== */}
+
+        <ApplicationsPage />
+        <JobApplicationActions
+          job={job}
+          onUpdated={(updated) => {
+            setJobs((currentJobs) =>
+              currentJobs.map((item) =>
+                item.id === job.id
+                  ? {
+                      ...item,
+                      ...updated,
+                    }
+                  : item
+              )
+            );
+          }}
+        />
+        <ApplicationTracker
+          job={job}
+          onUpdated={(updated) => {
+            setJob((current) => ({
+              ...current,
+              ...updated,
+            }));
+          }}
+        />
 
         {/* =====================================================
             ANALYTICS

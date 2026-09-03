@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import func
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from data_pipeline.database.connection import engine
@@ -14,6 +14,14 @@ from data_pipeline.database.models import (
     SalaryInsight,
 )
 from data_pipeline.database.scheduler.main_scheduler import start_scheduler
+from data_pipeline.schemas.application import (
+    ApplicationUpdate,
+)
+from data_pipeline.services.application_tracker import (
+    APPLICATION_STATUSES,
+    get_application,
+    update_application,
+)
 from data_pipeline.services.job_prioritization import (
     PrioritizationProfile,
     score_listing,
@@ -221,6 +229,12 @@ async def get_jobs(
                     "last_seen_at": listing.last_seen_at,
                     "is_active": listing.is_active,
                     "inactive_at": listing.inactive_at,
+                    "application_status": listing.application_status,
+                    "saved_at": listing.saved_at,
+                    "applied_at": listing.applied_at,
+                    "follow_up_at": listing.follow_up_at,
+                    "user_priority": listing.user_priority,
+                    "application_notes": listing.application_notes,
                 }
                 for listing in listings
             ],
@@ -272,6 +286,12 @@ async def get_job(job_id: str):
             "last_seen_at": listing.last_seen_at,
             "is_active": listing.is_active,
             "inactive_at": listing.inactive_at,
+            "application_status": listing.application_status,
+            "saved_at": listing.saved_at,
+            "applied_at": listing.applied_at,
+            "follow_up_at": listing.follow_up_at,
+            "user_priority": listing.user_priority,
+            "application_notes": listing.application_notes,
         }
 
 
@@ -433,6 +453,114 @@ async def get_prioritized_jobs(
             "total": total,
             "jobs": paginated_jobs,
         }
+
+
+@app.get("/jobs/{job_id}/application")
+async def get_job_application(job_id: str):
+    with Session(engine) as session:
+        listing = get_application(job_id, session)
+
+        return {
+            "job_id": listing.id,
+            "application_status": listing.application_status,
+            "saved_at": listing.saved_at,
+            "applied_at": listing.applied_at,
+            "follow_up_at": listing.follow_up_at,
+            "user_priority": listing.user_priority,
+            "application_notes": listing.application_notes,
+        }
+
+
+@app.patch("/jobs/{job_id}/application")
+async def update_job_application(
+    job_id: str,
+    payload: ApplicationUpdate,
+):
+    with Session(engine) as session:
+        listing = get_application(job_id, session)
+
+        listing = update_application(
+            session=session,
+            listing=listing,
+            application_status=payload.application_status,
+            user_priority=payload.user_priority,
+            follow_up_at=payload.follow_up_at,
+            application_notes=payload.application_notes,
+        )
+
+        return {
+            "job_id": listing.id,
+            "application_status": listing.application_status,
+            "saved_at": listing.saved_at,
+            "applied_at": listing.applied_at,
+            "follow_up_at": listing.follow_up_at,
+            "user_priority": listing.user_priority,
+            "application_notes": listing.application_notes,
+        }
+
+
+@app.get("/applications")
+async def get_applications(
+    status: Optional[str] = None,
+    priority: Optional[int] = None,
+):
+    with Session(engine) as session:
+        query = session.query(Listing)
+
+        if status is not None:
+            status = status.upper()
+
+            if status not in APPLICATION_STATUSES:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        f"Invalid application status '{status}'. "
+                        f"Allowed statuses: "
+                        f"{', '.join(sorted(APPLICATION_STATUSES))}."
+                    ),
+                )
+
+            query = query.filter(Listing.application_status == status)
+        else:
+            # NEW jobs are ordinary untracked jobs.
+            # The applications endpoint shows jobs
+            # that have entered the tracker.
+            query = query.filter(Listing.application_status != "NEW")
+
+        if priority is not None:
+            if priority not in {1, 2, 3}:
+                raise HTTPException(
+                    status_code=422,
+                    detail="priority must be 1, 2, or 3.",
+                )
+
+            query = query.filter(Listing.user_priority == priority)
+
+        listings = query.order_by(
+            desc(Listing.user_priority),
+            desc(Listing.applied_at),
+            desc(Listing.saved_at),
+        ).all()
+
+        return [
+            {
+                "id": listing.id,
+                "title": listing.title,
+                "company_name": listing.company_name,
+                "location_name": listing.location_name,
+                "normalized_salary_min": (listing.normalized_salary_min),
+                "normalized_salary_max": (listing.normalized_salary_max),
+                "normalized_salary_midpoint": (listing.normalized_salary_midpoint),
+                "redirect_url": listing.redirect_url,
+                "application_status": (listing.application_status),
+                "saved_at": listing.saved_at,
+                "applied_at": listing.applied_at,
+                "follow_up_at": listing.follow_up_at,
+                "user_priority": listing.user_priority,
+                "application_notes": (listing.application_notes),
+            }
+            for listing in listings
+        ]
 
 
 @app.get("/analytics/metadata")

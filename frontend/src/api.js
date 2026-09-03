@@ -104,6 +104,10 @@ export async function getJobs(filters = {}) {
   return fetchApi(`/jobs?${params.toString()}`);
 }
 
+export async function getJob(jobId) {
+  return fetchApi(`/jobs/${encodeURIComponent(jobId)}`);
+}
+
 export async function getSalaryAnalytics() {
   return fetchApi('/analytics/salary');
 }

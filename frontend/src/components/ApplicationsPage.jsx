@@ -87,7 +87,7 @@ export default function ApplicationsPage() {
   }, [status, priority]);
 
   return (
-    <section className="mt-8">
+    <section className="">
       <div className="mb-6">
         <p className="text-sm font-medium text-primary">
           APPLICATION TRACKER

@@ -1,21 +1,25 @@
 import { useEffect, useState } from 'react';
 import {
-  getAnalyticsMetadata,
-  getAnalyticsSummary,
-  getSalaryAnalytics,
-  getSalaryDistribution,
-} from '../api';
-
-import {
   Bar,
   BarChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
+
+import {
+  getAnalyticsBreakdown,
+  getAnalyticsMetadata,
+  getAnalyticsSummary,
+  getAnalyticsTrends,
+  getSalaryAnalytics,
+  getSalaryDistribution,
+} from '../api';
 
 export default function DashboardPage() {
   const [analytics, setAnalytics] = useState(null);
@@ -25,6 +29,7 @@ export default function DashboardPage() {
 
   const [loading, setLoading] = useState(true);
   const [distributionLoading, setDistributionLoading] = useState(false);
+
   const [error, setError] = useState(null);
   const [distributionError, setDistributionError] = useState(null);
 
@@ -35,13 +40,17 @@ export default function DashboardPage() {
       getSalaryAnalytics(),
       getAnalyticsSummary(),
       getAnalyticsMetadata(),
+      getAnalyticsBreakdown(),
+      getAnalyticsTrends(),
     ])
-      .then(([salary, summary, metadata]) => {
+      .then(([salary, summary, metadata, breakdown, trends]) => {
         if (cancelled) return;
 
         setAnalytics({
           salary,
           summary,
+          breakdown,
+          trends,
         });
 
         setCategories(metadata.categories || []);
@@ -89,7 +98,7 @@ export default function DashboardPage() {
       <PageIntro
         eyebrow="Market overview"
         title="Job market dashboard"
-        description="A focused view of salary patterns and the latest technology job market snapshot."
+        description="A focused analytical view of salary patterns, job-market composition, compensation, and market activity."
       />
 
       {loading && <Panel>Loading analytics...</Panel>}
@@ -104,8 +113,7 @@ export default function DashboardPage() {
 
       {analytics && (
         <DashboardContent
-          salary={analytics.salary}
-          summary={analytics.summary}
+          analytics={analytics}
           categories={categories}
           selectedCategory={selectedCategory}
           onCategoryChange={setSelectedCategory}
@@ -119,8 +127,7 @@ export default function DashboardPage() {
 }
 
 function DashboardContent({
-  salary,
-  summary,
+  analytics,
   categories,
   selectedCategory,
   onCategoryChange,
@@ -128,12 +135,26 @@ function DashboardContent({
   distributionLoading,
   distributionError,
 }) {
+  const { salary, summary, breakdown, trends } = analytics;
+
+  const activeJobs = breakdown.job_status?.active ?? 0;
+
+  const inactiveJobs = breakdown.job_status?.inactive ?? 0;
+
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric label="Jobs" value={summary.job_count} />
+      {/* ================================================= */}
+      {/* KPI OVERVIEW */}
+      {/* ================================================= */}
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+        <Metric label="Total jobs" value={summary.job_count} />
 
         <Metric label="Salary records" value={summary.salary_count} />
+
+        <Metric label="Active jobs" value={activeJobs} />
+
+        <Metric label="Inactive jobs" value={inactiveJobs} />
 
         <Metric label="Mean salary" value={money(summary.mean_salary, true)} />
 
@@ -142,6 +163,10 @@ function DashboardContent({
           value={money(summary.median_salary, true)}
         />
       </section>
+
+      {/* ================================================= */}
+      {/* SALARY DISTRIBUTION */}
+      {/* ================================================= */}
 
       <SalaryDistributionPanel
         categories={categories}
@@ -152,72 +177,58 @@ function DashboardContent({
         error={distributionError}
       />
 
+      {/* ================================================= */}
+      {/* SALARY STATISTICS + COVERAGE */}
+      {/* ================================================= */}
+
       <section className="grid gap-6 xl:grid-cols-2">
-        <Panel>
-          <h2 className="text-lg font-semibold">Salary statistics</h2>
+        <SalaryStatistics salary={salary} />
 
-          <p className="mt-1 text-sm text-muted-foreground">
-            Statistics from the latest analytical snapshot.
-          </p>
-
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat label="Minimum" value={money(salary.distribution.minimum)} />
-
-            <Stat label="Maximum" value={money(salary.distribution.maximum)} />
-
-            <Stat label="Mean" value={money(salary.distribution.mean, true)} />
-
-            <Stat
-              label="Median"
-              value={money(salary.distribution.median, true)}
-            />
-
-            <Stat label="Q1" value={money(salary.distribution.q1, true)} />
-
-            <Stat label="Q3" value={money(salary.distribution.q3, true)} />
-
-            <Stat label="IQR" value={money(salary.distribution.iqr, true)} />
-
-            <Stat
-              label="Std. deviation"
-              value={money(salary.distribution.standard_deviation, true)}
-            />
-          </div>
-        </Panel>
-
-        <Panel>
-          <h2 className="text-lg font-semibold">Salary coverage</h2>
-
-          <p className="mt-1 text-sm text-muted-foreground">
-            Availability of salary information across listings.
-          </p>
-
-          <div className="mt-6 space-y-4">
-            <Coverage
-              label="With minimum salary"
-              value={salary.salary_coverage.with_min_salary}
-            />
-
-            <Coverage
-              label="With maximum salary"
-              value={salary.salary_coverage.with_max_salary}
-            />
-
-            <Coverage
-              label="With midpoint salary"
-              value={salary.salary_coverage.with_midpoint_salary}
-            />
-
-            <Coverage
-              label="Complete salary range"
-              value={salary.salary_coverage.with_complete_range}
-            />
-          </div>
-        </Panel>
+        <SalaryCoverage salary={salary} totalJobs={summary.job_count} />
       </section>
+
+      {/* ================================================= */}
+      {/* CATEGORY ANALYSIS */}
+      {/* ================================================= */}
+
+      <CategoryAnalytics categories={breakdown.top_categories || []} />
+
+      {/* ================================================= */}
+      {/* LOCATION ANALYSIS */}
+      {/* ================================================= */}
+
+      <LocationAnalytics locations={breakdown.top_locations || []} />
+
+      {/* ================================================= */}
+      {/* MARKET STRUCTURE */}
+      {/* ================================================= */}
+
+      <section className="grid gap-6 xl:grid-cols-3">
+        <ContractTimeAnalytics data={breakdown.contract_time || []} />
+
+        <ContractTypeAnalytics data={breakdown.contract_type || []} />
+
+        <SalaryPredictionAnalytics data={breakdown.salary_prediction || []} />
+      </section>
+
+      {/* ================================================= */}
+      {/* TOP PAYING JOBS */}
+      {/* ================================================= */}
+
+      <TopSalaryJobs jobs={breakdown.top_salary_jobs || []} />
+
+      {/* ================================================= */}
+      {/* TRENDS */}
+      {/* ================================================= */}
+
+      <MarketTrends data={trends.daily || []} />
     </div>
   );
 }
+
+/* =========================================================
+   SALARY DISTRIBUTION
+   ========================================================= */
 
 function SalaryDistributionPanel({
   categories,
@@ -286,7 +297,7 @@ function SalaryDistributionPanel({
               <BarChart
                 data={distribution.bins}
                 margin={{
-                  top: 10,
+                  top: 20,
                   right: 10,
                   left: 0,
                   bottom: 10,
@@ -296,14 +307,18 @@ function SalaryDistributionPanel({
 
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 12 }}
+                  tick={{
+                    fontSize: 12,
+                  }}
                   tickLine={false}
                   axisLine={false}
                 />
 
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fontSize: 12 }}
+                  tick={{
+                    fontSize: 12,
+                  }}
                   tickLine={false}
                   axisLine={false}
                 />
@@ -403,21 +418,565 @@ function SalaryDistributionPanel({
   );
 }
 
-function findBinLabel(bins, value) {
-  if (!bins || value == null) {
-    return undefined;
+/* =========================================================
+   SALARY STATISTICS
+   ========================================================= */
+
+function SalaryStatistics({ salary }) {
+  return (
+    <Panel>
+      <h2 className="text-lg font-semibold">Salary statistics</h2>
+
+      <p className="mt-1 text-sm text-muted-foreground">
+        Statistical summary of the latest salary dataset.
+      </p>
+
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat
+          label="Minimum"
+          value={money(salary.distribution.minimum, true)}
+        />
+
+        <Stat label="Q1" value={money(salary.distribution.q1, true)} />
+
+        <Stat label="Median" value={money(salary.distribution.median, true)} />
+
+        <Stat label="Mean" value={money(salary.distribution.mean, true)} />
+
+        <Stat label="Q3" value={money(salary.distribution.q3, true)} />
+
+        <Stat
+          label="Maximum"
+          value={money(salary.distribution.maximum, true)}
+        />
+
+        <Stat label="IQR" value={money(salary.distribution.iqr, true)} />
+
+        <Stat
+          label="Std. deviation"
+          value={money(salary.distribution.standard_deviation, true)}
+        />
+      </div>
+
+      <div className="mt-6 rounded-lg bg-muted p-4">
+        <p className="text-xs text-muted-foreground">
+          Standard deviation range
+        </p>
+
+        <p className="mt-2 text-sm font-medium">
+          1σ: {money(salary.standard_deviation_ranges.lower_1_std, true)} –{' '}
+          {money(salary.standard_deviation_ranges.upper_1_std, true)}
+        </p>
+
+        <p className="mt-1 text-sm font-medium">
+          2σ: {money(salary.standard_deviation_ranges.lower_2_std, true)} –{' '}
+          {money(salary.standard_deviation_ranges.upper_2_std, true)}
+        </p>
+      </div>
+    </Panel>
+  );
+}
+
+/* =========================================================
+   SALARY COVERAGE
+   ========================================================= */
+
+function SalaryCoverage({ salary, totalJobs }) {
+  const midpointCount = salary.salary_coverage.with_midpoint_salary;
+
+  const coveragePercentage =
+    totalJobs > 0 ? Math.round((midpointCount / totalJobs) * 100) : 0;
+
+  return (
+    <Panel>
+      <h2 className="text-lg font-semibold">Salary coverage</h2>
+
+      <p className="mt-1 text-sm text-muted-foreground">
+        Availability of salary information across listings.
+      </p>
+
+      <div className="mt-6 space-y-4">
+        <Coverage
+          label="With minimum salary"
+          value={salary.salary_coverage.with_min_salary}
+        />
+
+        <Coverage
+          label="With maximum salary"
+          value={salary.salary_coverage.with_max_salary}
+        />
+
+        <Coverage
+          label="With midpoint salary"
+          value={salary.salary_coverage.with_midpoint_salary}
+        />
+
+        <Coverage
+          label="Complete salary range"
+          value={salary.salary_coverage.with_complete_range}
+        />
+      </div>
+
+      <div className="mt-6 rounded-lg bg-muted p-4">
+        <p className="text-xs text-muted-foreground">
+          Midpoint salary coverage
+        </p>
+
+        <p className="mt-2 text-2xl font-bold">{coveragePercentage}%</p>
+
+        <p className="mt-1 text-xs text-muted-foreground">
+          {midpointCount} of {totalJobs} listings contain a normalized midpoint
+          salary.
+        </p>
+      </div>
+    </Panel>
+  );
+}
+
+/* =========================================================
+   CATEGORY ANALYTICS
+   ========================================================= */
+
+function CategoryAnalytics({ categories }) {
+  return (
+    <section className="grid gap-6 xl:grid-cols-2">
+      <Panel>
+        <h2 className="text-lg font-semibold">Jobs by category</h2>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          Categories with the highest number of listings.
+        </p>
+
+        <div className="mt-6 h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={categories}
+              layout="vertical"
+              margin={{
+                top: 5,
+                right: 20,
+                left: 10,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+
+              <XAxis type="number" allowDecimals={false} />
+
+              <YAxis
+                type="category"
+                dataKey="category"
+                width={120}
+                tick={{
+                  fontSize: 11,
+                }}
+              />
+
+              <Tooltip />
+
+              <Bar dataKey="job_count" name="Jobs" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </Panel>
+
+      <Panel>
+        <h2 className="text-lg font-semibold">Salary by category</h2>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          Mean and median normalized salary by category.
+        </p>
+
+        <div className="mt-6 h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={categories}
+              layout="vertical"
+              margin={{
+                top: 5,
+                right: 20,
+                left: 10,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+
+              <XAxis
+                type="number"
+                tickFormatter={(value) => `£${Math.round(value / 1000)}k`}
+              />
+
+              <YAxis
+                type="category"
+                dataKey="category"
+                width={120}
+                tick={{
+                  fontSize: 11,
+                }}
+              />
+
+              <Tooltip formatter={(value) => money(value, true)} />
+
+              <Bar
+                dataKey="mean_salary"
+                name="Mean salary"
+                radius={[0, 4, 4, 0]}
+              />
+
+              <Bar
+                dataKey="median_salary"
+                name="Median salary"
+                radius={[0, 4, 4, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </Panel>
+    </section>
+  );
+}
+
+/* =========================================================
+   LOCATION ANALYTICS
+   ========================================================= */
+
+function LocationAnalytics({ locations }) {
+  return (
+    <section className="grid gap-6 xl:grid-cols-2">
+      <Panel>
+        <h2 className="text-lg font-semibold">Jobs by location</h2>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          Locations with the highest number of listings.
+        </p>
+
+        <div className="mt-6 h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={locations}
+              layout="vertical"
+              margin={{
+                top: 5,
+                right: 20,
+                left: 10,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+
+              <XAxis type="number" allowDecimals={false} />
+
+              <YAxis
+                type="category"
+                dataKey="location"
+                width={120}
+                tick={{
+                  fontSize: 11,
+                }}
+              />
+
+              <Tooltip />
+
+              <Bar dataKey="job_count" name="Jobs" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </Panel>
+
+      <Panel>
+        <h2 className="text-lg font-semibold">Salary by location</h2>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          Mean and median normalized salary by location.
+        </p>
+
+        <div className="mt-6 h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={locations}
+              layout="vertical"
+              margin={{
+                top: 5,
+                right: 20,
+                left: 10,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+
+              <XAxis
+                type="number"
+                tickFormatter={(value) => `£${Math.round(value / 1000)}k`}
+              />
+
+              <YAxis
+                type="category"
+                dataKey="location"
+                width={120}
+                tick={{
+                  fontSize: 11,
+                }}
+              />
+
+              <Tooltip formatter={(value) => money(value, true)} />
+
+              <Bar
+                dataKey="mean_salary"
+                name="Mean salary"
+                radius={[0, 4, 4, 0]}
+              />
+
+              <Bar
+                dataKey="median_salary"
+                name="Median salary"
+                radius={[0, 4, 4, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </Panel>
+    </section>
+  );
+}
+
+/* =========================================================
+   CONTRACT TIME
+   ========================================================= */
+
+function ContractTimeAnalytics({ data }) {
+  return (
+    <DistributionPanel
+      title="Contract time"
+      description="Distribution of permanent versus temporary and other contract durations."
+      data={data}
+      labelKey="contract_time"
+    />
+  );
+}
+
+/* =========================================================
+   CONTRACT TYPE
+   ========================================================= */
+
+function ContractTypeAnalytics({ data }) {
+  return (
+    <DistributionPanel
+      title="Contract type"
+      description="Distribution of available contract types."
+      data={data}
+      labelKey="contract_type"
+    />
+  );
+}
+
+/* =========================================================
+   SALARY PREDICTION
+   ========================================================= */
+
+function SalaryPredictionAnalytics({ data }) {
+  const normalizedData = data.map((item) => ({
+    ...item,
+    label: item.salary_predicted ? 'Predicted' : 'Not predicted',
+  }));
+
+  return (
+    <DistributionPanel
+      title="Salary prediction"
+      description="Whether salary values are predicted by the source."
+      data={normalizedData}
+      labelKey="label"
+    />
+  );
+}
+
+function DistributionPanel({ title, description, data, labelKey }) {
+  return (
+    <Panel>
+      <h2 className="text-lg font-semibold">{title}</h2>
+
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+
+      <div className="mt-6 h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{
+              top: 5,
+              right: 10,
+              left: 0,
+              bottom: 5,
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+
+            <XAxis
+              dataKey={labelKey}
+              tick={{
+                fontSize: 11,
+              }}
+            />
+
+            <YAxis allowDecimals={false} />
+
+            <Tooltip />
+
+            <Bar dataKey="job_count" name="Jobs" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </Panel>
+  );
+}
+
+/* =========================================================
+   TOP SALARY JOBS
+   ========================================================= */
+
+function TopSalaryJobs({ jobs }) {
+  return (
+    <Panel>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Highest paying jobs</h2>
+
+          <p className="mt-1 text-sm text-muted-foreground">
+            Top listings ranked by normalized salary midpoint.
+          </p>
+        </div>
+
+        <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium">
+          Top 10
+        </span>
+      </div>
+
+      <div className="mt-6 overflow-x-auto">
+        <table className="w-full min-w-[700px] text-sm">
+          <thead>
+            <tr className="border-b border-border text-left">
+              <th className="px-3 py-3 font-medium text-muted-foreground">#</th>
+
+              <th className="px-3 py-3 font-medium text-muted-foreground">
+                Job
+              </th>
+
+              <th className="px-3 py-3 font-medium text-muted-foreground">
+                Company
+              </th>
+
+              <th className="px-3 py-3 font-medium text-muted-foreground">
+                Location
+              </th>
+
+              <th className="px-3 py-3 text-right font-medium text-muted-foreground">
+                Salary
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {jobs.map((job) => (
+              <tr key={job.id} className="border-b border-border last:border-0">
+                <td className="px-3 py-3 font-semibold">{job.rank}</td>
+
+                <td className="px-3 py-3">
+                  <p className="max-w-xs truncate font-medium">{job.title}</p>
+                </td>
+
+                <td className="px-3 py-3 text-muted-foreground">
+                  {job.company_name || '—'}
+                </td>
+
+                <td className="px-3 py-3 text-muted-foreground">
+                  {job.location_name || '—'}
+                </td>
+
+                <td className="px-3 py-3 text-right font-semibold">
+                  {money(job.salary, true)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
+  );
+}
+
+/* =========================================================
+   MARKET TRENDS
+   ========================================================= */
+
+function MarketTrends({ data }) {
+  if (!data.length) {
+    return null;
   }
 
-  const matchingBin = bins.find((bin, index) => {
-    const isLast = index === bins.length - 1;
+  return (
+    <Panel>
+      <h2 className="text-lg font-semibold">Market activity</h2>
 
-    return (
-      value >= bin.min && (value < bin.max || (isLast && value <= bin.max))
-    );
-  });
+      <p className="mt-1 text-sm text-muted-foreground">
+        Job additions, inactivations, and the resulting active-job count over
+        time.
+      </p>
 
-  return matchingBin?.label;
+      <div className="mt-6 h-80">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={data}
+            margin={{
+              top: 10,
+              right: 10,
+              left: 0,
+              bottom: 10,
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+
+            <XAxis
+              dataKey="date"
+              tick={{
+                fontSize: 11,
+              }}
+            />
+
+            <YAxis allowDecimals={false} />
+
+            <Tooltip />
+
+            <Line
+              type="monotone"
+              dataKey="jobs_added"
+              name="Jobs added"
+              strokeWidth={2}
+              dot={false}
+            />
+
+            <Line
+              type="monotone"
+              dataKey="jobs_inactivated"
+              name="Jobs inactivated"
+              strokeWidth={2}
+              dot={false}
+            />
+
+            <Line
+              type="monotone"
+              dataKey="active_jobs"
+              name="Active jobs"
+              strokeWidth={2}
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </Panel>
+  );
 }
+
+/* =========================================================
+   SHARED UI
+   ========================================================= */
 
 export function PageIntro({ eyebrow, title, description }) {
   return (
@@ -471,6 +1030,22 @@ function Coverage({ label, value }) {
       <span className="font-semibold">{value}</span>
     </div>
   );
+}
+
+function findBinLabel(bins, value) {
+  if (!bins || value == null) {
+    return undefined;
+  }
+
+  const matchingBin = bins.find((bin, index) => {
+    const isLast = index === bins.length - 1;
+
+    return (
+      value >= bin.min && (value < bin.max || (isLast && value <= bin.max))
+    );
+  });
+
+  return matchingBin?.label;
 }
 
 function money(value, rounded = false) {

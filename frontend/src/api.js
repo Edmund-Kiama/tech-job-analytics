@@ -116,6 +116,14 @@ export async function getAnalyticsMetadata() {
   return fetchApi('/analytics/metadata');
 }
 
+export async function getAnalyticsBreakdown() {
+  return fetchApi('/analytics/breakdown');
+}
+
+export async function getAnalyticsTrends() {
+  return fetchApi('/analytics/trends');
+}
+
 export async function getAnalyticsSummary() {
   return fetchApi('/analytics/summary');
 }
@@ -162,4 +170,3 @@ export async function getSalaryDistribution(category = null) {
       : '/analytics/salary/distribution'
   );
 }
-

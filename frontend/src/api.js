@@ -112,6 +112,10 @@ export async function getSalaryAnalytics() {
   return fetchApi('/analytics/salary');
 }
 
+export async function getAnalyticsMetadata() {
+  return fetchApi('/analytics/metadata');
+}
+
 export async function getAnalyticsSummary() {
   return fetchApi('/analytics/summary');
 }
@@ -142,3 +146,20 @@ export async function getApplications(status = null, priority = null) {
 
   return fetchApi(query ? `/applications?${query}` : '/applications');
 }
+
+export async function getSalaryDistribution(category = null) {
+  const params = new URLSearchParams();
+
+  if (category) {
+    params.set('category', category);
+  }
+
+  const query = params.toString();
+
+  return fetchApi(
+    query
+      ? `/analytics/salary/distribution?${query}`
+      : '/analytics/salary/distribution'
+  );
+}
+

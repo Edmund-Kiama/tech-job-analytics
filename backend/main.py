@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Optional
 
+import numpy as np
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import desc, func
@@ -1135,6 +1135,128 @@ async def get_category_analytics(category: str):
                 }
                 for rank, job in enumerate(top_jobs, start=1)
             ],
+        }
+
+
+@app.get("/analytics/salary/distribution")
+async def get_salary_distribution(
+    category: Optional[str] = Query(
+        None,
+        description="Optional category to analyze.",
+    ),
+):
+    with Session(engine) as session:
+        query = session.query(Listing).filter(
+            Listing.is_active.is_(True),
+            Listing.normalized_salary_midpoint.isnot(None),
+        )
+
+        if category is not None:
+            query = query.filter(Listing.category_label == category)
+
+        listings = query.all()
+
+        if not listings:
+            if category is not None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No active salary records found for category '{category}'.",
+                )
+
+            raise HTTPException(
+                status_code=404,
+                detail="No active salary records available.",
+            )
+
+        salaries = np.array(
+            [float(listing.normalized_salary_midpoint) for listing in listings],
+            dtype=float,
+        )
+
+        minimum = float(np.min(salaries))
+        maximum = float(np.max(salaries))
+        mean = float(np.mean(salaries))
+        median = float(np.median(salaries))
+
+        q1 = float(np.percentile(salaries, 25))
+        q3 = float(np.percentile(salaries, 75))
+        iqr = q3 - q1
+
+        standard_deviation = float(np.std(salaries))
+
+        lower_outlier_boundary = q1 - (1.5 * iqr)
+        upper_outlier_boundary = q3 + (1.5 * iqr)
+
+        lower_outliers = salaries[salaries < lower_outlier_boundary]
+        upper_outliers = salaries[salaries > upper_outlier_boundary]
+
+        outliers = np.concatenate([lower_outliers, upper_outliers])
+
+        # Choose a sensible number of bins based on dataset size.
+        # For small subsets, avoid producing dozens of nearly empty bins.
+        bin_count = min(
+            12,
+            max(5, int(np.sqrt(len(salaries)))),
+        )
+
+        if minimum == maximum:
+            edges = np.array(
+                [
+                    minimum - 0.5,
+                    maximum + 0.5,
+                ]
+            )
+        else:
+            edges = np.linspace(
+                minimum,
+                maximum,
+                bin_count + 1,
+            )
+
+        counts, edges = np.histogram(
+            salaries,
+            bins=edges,
+        )
+
+        bins = []
+
+        for index, count in enumerate(counts):
+            bins.append(
+                {
+                    "min": float(edges[index]),
+                    "max": float(edges[index + 1]),
+                    "count": int(count),
+                    "label": (
+                        f"£{edges[index] / 1000:.0f}k–£{edges[index + 1] / 1000:.0f}k"
+                    ),
+                }
+            )
+
+        return {
+            "scope": {
+                "type": "category" if category else "all",
+                "category": category,
+            },
+            "job_count": len(listings),
+            "salary_count": len(salaries),
+            "bins": bins,
+            "statistics": {
+                "minimum": minimum,
+                "q1": q1,
+                "median": median,
+                "mean": mean,
+                "q3": q3,
+                "maximum": maximum,
+                "iqr": iqr,
+                "standard_deviation": standard_deviation,
+            },
+            "outliers": {
+                "total": int(len(outliers)),
+                "lower": int(len(lower_outliers)),
+                "upper": int(len(upper_outliers)),
+                "lower_boundary": float(lower_outlier_boundary),
+                "upper_boundary": float(upper_outlier_boundary),
+            },
         }
 
 

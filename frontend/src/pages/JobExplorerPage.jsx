@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getJobs } from '../api';
-import { PageIntro } from './DashboardPage';
+import PageIntro from '../components/PageIntro';
 
 const DEFAULT_PAGE_SIZE =
   parseInt(import.meta.env.VITE_DEFAULT_PAGE_SIZE, 10) || 25;

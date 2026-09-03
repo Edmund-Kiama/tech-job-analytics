@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import AppLayout from './components/AppLayout';
-import ApplicationsPage from './components/ApplicationsPage';
 import useTheme from './hooks/useTheme';
 import AnalyticsPage from './pages/AnalyticsPage';
+import ApplicationsPage from './pages/ApplicationsPage';
 import DashboardPage from './pages/DashboardPage';
 import JobDetailPage from './pages/JobDetailPage';
 import JobExplorerPage from './pages/JobExplorerPage';

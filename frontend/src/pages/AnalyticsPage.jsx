@@ -7,20 +7,20 @@ import {
   getSalaryAnalytics,
   getSalaryDistribution,
 } from '../api';
+import PageIntro from '../components/PageIntro';
+import Panel from '../components/Panel';
 import {
   CategoryAnalytics,
   ContractTimeAnalytics,
   ContractTypeAnalytics,
   MarketTrends,
-  Panel,
   LocationAnalytics,
-  PageIntro,
   SalaryCoverage,
   SalaryDistributionPanel,
   SalaryPredictionAnalytics,
   SalaryStatistics,
   TopSalaryJobs,
-} from './DashboardPage';
+} from '../components/dashboard/DashboardAnalytics';
 
 const SECTION_DETAILS = {
   salary: {

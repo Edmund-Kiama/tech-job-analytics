@@ -115,7 +115,8 @@ function BackButton({ onBack }) {
       <span aria-hidden="true">←</span> Back to job explorer
     </button>
   );
-}
+} 
+
 function Detail({ label, value }) {
   return (
     <div>
@@ -124,6 +125,7 @@ function Detail({ label, value }) {
     </div>
   );
 }
+
 function format(value) {
   return value
     ? value
@@ -131,6 +133,7 @@ function format(value) {
         .replace(/\b\w/g, (letter) => letter.toUpperCase())
     : '';
 }
+
 function formatSalary(job) {
   if (job.salary_min != null && job.salary_max != null)
     return `£${Number(job.salary_min).toLocaleString()} – £${Number(job.salary_max).toLocaleString()}`;

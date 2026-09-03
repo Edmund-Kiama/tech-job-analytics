@@ -2,6 +2,9 @@ import { useState } from 'react';
 
 const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard', icon: '▦' },
+  { path: '/analytics/salary', label: 'Salary analytics', icon: '£' },
+  { path: '/analytics/market', label: 'Market analysis', icon: '◫' },
+  { path: '/analytics/trends', label: 'Market activity', icon: '↗' },
   { path: '/jobs', label: 'Job explorer', icon: '⌕' },
   { path: '/applications', label: 'Application tracker', icon: '✓' },
 ];
@@ -43,7 +46,7 @@ export default function AppLayout({
       </header>
 
       <div className="flex min-h-screen">
-        <aside className="hidden w-64 shrink-0 border-r border-border bg-card lg:flex lg:flex-col">
+        <aside className="sticky top-0 hidden h-screen max-h-screen w-64 shrink-0 overflow-y-auto border-r border-border bg-card lg:flex lg:flex-col">
           <div className="border-b border-border p-6">
             <Brand />
           </div>

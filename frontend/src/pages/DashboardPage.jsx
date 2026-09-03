@@ -14,24 +14,14 @@ import {
 
 import {
   getAnalyticsBreakdown,
-  getAnalyticsMetadata,
   getAnalyticsSummary,
-  getAnalyticsTrends,
   getSalaryAnalytics,
-  getSalaryDistribution,
 } from '../api';
 
 export default function DashboardPage() {
   const [analytics, setAnalytics] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [distribution, setDistribution] = useState(null);
-
   const [loading, setLoading] = useState(true);
-  const [distributionLoading, setDistributionLoading] = useState(false);
-
   const [error, setError] = useState(null);
-  const [distributionError, setDistributionError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,21 +29,16 @@ export default function DashboardPage() {
     Promise.all([
       getSalaryAnalytics(),
       getAnalyticsSummary(),
-      getAnalyticsMetadata(),
       getAnalyticsBreakdown(),
-      getAnalyticsTrends(),
     ])
-      .then(([salary, summary, metadata, breakdown, trends]) => {
+      .then(([salary, summary, breakdown]) => {
         if (cancelled) return;
 
         setAnalytics({
           salary,
           summary,
           breakdown,
-          trends,
         });
-
-        setCategories(metadata.categories || []);
         setLoading(false);
       })
       .catch((loadError) => {
@@ -67,31 +52,6 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    setDistributionLoading(true);
-    setDistributionError(null);
-
-    getSalaryDistribution(selectedCategory || null)
-      .then((data) => {
-        if (cancelled) return;
-
-        setDistribution(data);
-        setDistributionLoading(false);
-      })
-      .catch((loadError) => {
-        if (cancelled) return;
-
-        setDistributionError(loadError.message);
-        setDistributionLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedCategory]);
 
   return (
     <div>
@@ -111,31 +71,13 @@ export default function DashboardPage() {
         </Panel>
       )}
 
-      {analytics && (
-        <DashboardContent
-          analytics={analytics}
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          distribution={distribution}
-          distributionLoading={distributionLoading}
-          distributionError={distributionError}
-        />
-      )}
+      {analytics && <DashboardContent analytics={analytics} />}
     </div>
   );
 }
 
-function DashboardContent({
-  analytics,
-  categories,
-  selectedCategory,
-  onCategoryChange,
-  distribution,
-  distributionLoading,
-  distributionError,
-}) {
-  const { salary, summary, breakdown, trends } = analytics;
+function DashboardContent({ analytics }) {
+  const { summary, breakdown } = analytics;
 
   const activeJobs = breakdown.job_status?.active ?? 0;
 
@@ -164,64 +106,13 @@ function DashboardContent({
         />
       </section>
 
-      {/* ================================================= */}
-      {/* SALARY DISTRIBUTION */}
-      {/* ================================================= */}
-
-      <SalaryDistributionPanel
-        categories={categories}
-        selectedCategory={selectedCategory}
-        onCategoryChange={onCategoryChange}
-        distribution={distribution}
-        loading={distributionLoading}
-        error={distributionError}
-      />
-
-      {/* ================================================= */}
-      {/* SALARY STATISTICS + COVERAGE */}
-      {/* ================================================= */}
-
-      <section className="grid gap-6 xl:grid-cols-2">
-        <SalaryStatistics salary={salary} />
-
-        <SalaryCoverage salary={salary} totalJobs={summary.job_count} />
-      </section>
-
-      {/* ================================================= */}
-      {/* CATEGORY ANALYSIS */}
-      {/* ================================================= */}
-
-      <CategoryAnalytics categories={breakdown.top_categories || []} />
-
-      {/* ================================================= */}
-      {/* LOCATION ANALYSIS */}
-      {/* ================================================= */}
-
-      <LocationAnalytics locations={breakdown.top_locations || []} />
-
-      {/* ================================================= */}
-      {/* MARKET STRUCTURE */}
-      {/* ================================================= */}
-
-      <section className="grid gap-6 xl:grid-cols-3">
-        <ContractTimeAnalytics data={breakdown.contract_time || []} />
-
-        <ContractTypeAnalytics data={breakdown.contract_type || []} />
-
-        <SalaryPredictionAnalytics data={breakdown.salary_prediction || []} />
-      </section>
-
-      {/* ================================================= */}
-      {/* TOP PAYING JOBS */}
-      {/* ================================================= */}
-
-      <TopSalaryJobs jobs={breakdown.top_salary_jobs || []} />
-
-      {/* ================================================= */}
-      {/* TRENDS */}
-      {/* ================================================= */}
-
-      <MarketTrends data={trends.daily || []} />
+      <Panel>
+        <h2 className="text-lg font-semibold">Your analytics workspace</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Use the analytics pages in the sidebar to explore salary, market
+          structure, and activity in detail.
+        </p>
+      </Panel>
     </div>
   );
 }
@@ -230,7 +121,7 @@ function DashboardContent({
    SALARY DISTRIBUTION
    ========================================================= */
 
-function SalaryDistributionPanel({
+export function SalaryDistributionPanel({
   categories,
   selectedCategory,
   onCategoryChange,
@@ -422,7 +313,7 @@ function SalaryDistributionPanel({
    SALARY STATISTICS
    ========================================================= */
 
-function SalaryStatistics({ salary }) {
+export function SalaryStatistics({ salary }) {
   return (
     <Panel>
       <h2 className="text-lg font-semibold">Salary statistics</h2>
@@ -481,7 +372,7 @@ function SalaryStatistics({ salary }) {
    SALARY COVERAGE
    ========================================================= */
 
-function SalaryCoverage({ salary, totalJobs }) {
+export function SalaryCoverage({ salary, totalJobs }) {
   const midpointCount = salary.salary_coverage.with_midpoint_salary;
 
   const coveragePercentage =
@@ -537,7 +428,7 @@ function SalaryCoverage({ salary, totalJobs }) {
    CATEGORY ANALYTICS
    ========================================================= */
 
-function CategoryAnalytics({ categories }) {
+export function CategoryAnalytics({ categories }) {
   return (
     <section className="grid gap-6 xl:grid-cols-2">
       <Panel>
@@ -640,7 +531,7 @@ function CategoryAnalytics({ categories }) {
    LOCATION ANALYTICS
    ========================================================= */
 
-function LocationAnalytics({ locations }) {
+export function LocationAnalytics({ locations }) {
   return (
     <section className="grid gap-6 xl:grid-cols-2">
       <Panel>
@@ -743,7 +634,7 @@ function LocationAnalytics({ locations }) {
    CONTRACT TIME
    ========================================================= */
 
-function ContractTimeAnalytics({ data }) {
+export function ContractTimeAnalytics({ data }) {
   return (
     <DistributionPanel
       title="Contract time"
@@ -758,7 +649,7 @@ function ContractTimeAnalytics({ data }) {
    CONTRACT TYPE
    ========================================================= */
 
-function ContractTypeAnalytics({ data }) {
+export function ContractTypeAnalytics({ data }) {
   return (
     <DistributionPanel
       title="Contract type"
@@ -773,7 +664,7 @@ function ContractTypeAnalytics({ data }) {
    SALARY PREDICTION
    ========================================================= */
 
-function SalaryPredictionAnalytics({ data }) {
+export function SalaryPredictionAnalytics({ data }) {
   const normalizedData = data.map((item) => ({
     ...item,
     label: item.salary_predicted ? 'Predicted' : 'Not predicted',
@@ -832,7 +723,7 @@ function DistributionPanel({ title, description, data, labelKey }) {
    TOP SALARY JOBS
    ========================================================= */
 
-function TopSalaryJobs({ jobs }) {
+export function TopSalaryJobs({ jobs }) {
   return (
     <Panel>
       <div className="flex items-start justify-between">
@@ -906,7 +797,7 @@ function TopSalaryJobs({ jobs }) {
    MARKET TRENDS
    ========================================================= */
 
-function MarketTrends({ data }) {
+export function MarketTrends({ data }) {
   if (!data.length) {
     return null;
   }
@@ -994,7 +885,7 @@ export function PageIntro({ eyebrow, title, description }) {
   );
 }
 
-function Panel({ children }) {
+export function Panel({ children }) {
   return (
     <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
       {children}

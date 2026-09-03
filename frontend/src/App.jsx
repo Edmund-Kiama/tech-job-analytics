@@ -2,11 +2,16 @@ import { useEffect, useState } from 'react';
 import AppLayout from './components/AppLayout';
 import ApplicationsPage from './components/ApplicationsPage';
 import useTheme from './hooks/useTheme';
+import AnalyticsPage from './pages/AnalyticsPage';
 import DashboardPage from './pages/DashboardPage';
 import JobDetailPage from './pages/JobDetailPage';
 import JobExplorerPage from './pages/JobExplorerPage';
 
 function getRoute() {
+  if (window.location.pathname === '/') {
+    window.history.replaceState({}, '', '/dashboard');
+  }
+
   const match = window.location.pathname.match(/^\/jobs\/([^/]+)\/?$/);
   return match
     ? { path: '/job-detail', jobId: decodeURIComponent(match[1]) }
@@ -31,7 +36,13 @@ export default function App() {
 
   const activePath = route.path === '/job-detail' ? '/jobs' : route.path;
   const page =
-    route.path === '/applications' ? (
+    route.path === '/analytics/salary' ? (
+      <AnalyticsPage section="salary" />
+    ) : route.path === '/analytics/market' ? (
+      <AnalyticsPage section="market" />
+    ) : route.path === '/analytics/trends' ? (
+      <AnalyticsPage section="trends" />
+    ) : route.path === '/applications' ? (
       <ApplicationsPage />
     ) : route.path === '/jobs' ? (
       <JobExplorerPage

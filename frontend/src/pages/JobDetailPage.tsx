@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getJob } from '../api';
 import ApplicationTracker from '../components/ApplicationTracker';
 import JobApplicationActions from '../components/JobApplicationActions';
+import Loader from '../components/Loader';
 
 export default function JobDetailPage({ jobId, onBack }) {
   const [job, setJob] = useState(null);
@@ -21,8 +22,7 @@ export default function JobDetailPage({ jobId, onBack }) {
     };
   }, [jobId]);
 
-  if (!job && !error)
-    return <p className="text-sm text-muted-foreground">Loading job...</p>;
+  if (!job && !error) return <Loader label="Loading job..." />;
   if (error)
     return (
       <>

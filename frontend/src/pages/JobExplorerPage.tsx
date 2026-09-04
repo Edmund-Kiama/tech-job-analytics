@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getJobs } from '../api';
+import Loader from '../components/Loader';
 import PageIntro from '../components/PageIntro';
 
 const DEFAULT_PAGE_SIZE =
@@ -107,8 +108,8 @@ export default function JobExplorerPage({ onOpenJob }) {
         </div>
       )}
       {loading && !error && (
-        <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
-          Loading jobs...
+        <div className="rounded-xl border border-border bg-card">
+          <Loader label="Loading jobs..." />
         </div>
       )}
       {!loading && !error && !result.items?.length && (

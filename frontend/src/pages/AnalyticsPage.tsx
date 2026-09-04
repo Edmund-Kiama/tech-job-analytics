@@ -8,6 +8,7 @@ import {
   getSalaryDistribution,
 } from '../api';
 import PageIntro from '../components/PageIntro';
+import Loader from '../components/Loader';
 import Panel from '../components/Panel';
 import {
   CategoryAnalytics,
@@ -120,7 +121,11 @@ export default function AnalyticsPage({ section }) {
   return (
     <div>
       <PageIntro {...details} />
-      {loading && <Panel>Loading analytics...</Panel>}
+      {loading && (
+        <Panel>
+          <Loader label="Loading analytics..." />
+        </Panel>
+      )}
       {error && (
         <Panel>
           <h2 className="font-semibold">Unable to load analytics</h2>

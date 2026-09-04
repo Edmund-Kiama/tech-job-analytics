@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getJobApplication, updateJobApplication } from '../api';
+import Loader from './Loader';
 
 const STATUSES = [
   'NEW',
@@ -109,10 +110,8 @@ export default function ApplicationTracker({ job, onUpdated }) {
 
   if (loading) {
     return (
-      <div className="rounded-xl border bg-card p-5">
-        <p className="text-sm text-muted-foreground">
-          Loading application tracker...
-        </p>
+      <div className="rounded-xl border bg-card">
+        <Loader label="Loading application tracker..." />
       </div>
     );
   }

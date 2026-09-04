@@ -18,6 +18,7 @@ import {
   getSalaryAnalytics,
 } from '../../api';
 import PageIntro from '../PageIntro';
+import Loader from '../Loader';
 import Panel from '../Panel';
 
 export default function DashboardPage() {
@@ -63,7 +64,11 @@ export default function DashboardPage() {
         description="A focused analytical view of salary patterns, job-market composition, compensation, and market activity."
       />
 
-      {loading && <Panel>Loading analytics...</Panel>}
+      {loading && (
+        <Panel>
+          <Loader label="Loading analytics..." />
+        </Panel>
+      )}
 
       {error && (
         <Panel>
@@ -168,10 +173,8 @@ export function SalaryDistributionPanel({
       </div>
 
       {loading && (
-        <div className="mt-8 flex h-80 items-center justify-center rounded-lg bg-muted/40">
-          <p className="text-sm text-muted-foreground">
-            Loading salary distribution...
-          </p>
+        <div className="mt-8 rounded-lg bg-muted/40">
+          <Loader label="Loading salary distribution..." className="h-80" />
         </div>
       )}
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getApplications } from '../api';
+import Loader from '../components/Loader';
 
 const STATUSES = [
   'ALL',
@@ -124,8 +125,8 @@ export default function ApplicationsPage() {
       </div>
 
       {loading && (
-        <div className="rounded-xl border bg-card p-6">
-          Loading applications...
+        <div className="rounded-xl border bg-card">
+          <Loader label="Loading applications..." />
         </div>
       )}
 

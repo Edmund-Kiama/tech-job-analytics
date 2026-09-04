@@ -1,120 +1,128 @@
 # Data Flow
 
-## Overview
+This document follows a job dataset from extraction to API response. The pipeline preserves the source payload, creates a normalized current view, and records historical observations and analytical snapshots.
 
-The project is centered around a clear pipeline-driven flow that transforms raw job data into normalized listings and salary insights. This data flow is one of the strongest parts of the repository because it is already implemented and tested.
+## End-to-end lineage
 
-## End-to-end flow
-
-```text
-Job source data
-  -> bronze/raw payload storage
-  -> pandas dataframe loading
-  -> cleaning and normalization
-  -> listing persistence
-  -> salary statistics calculation
-  -> salary insight snapshot persistence
-  -> backend API exposure
-  -> frontend rendering
+```mermaid
+flowchart LR
+    source[Adzuna API or fixture] --> payload[Raw payload]
+    payload --> bronze[Timestamped bronze JSON]
+    bronze --> frame[Pandas DataFrame]
+    frame --> clean[Clean and flatten]
+    clean --> normalize[Normalize salary, location, and types]
+    normalize --> sync[Listing synchronization]
+    sync --> listings[(listings)]
+    sync --> history[(listing_history)]
+    normalize --> stats[Salary statistics]
+    stats --> insights[(salary_insights)]
+    sync --> run[(ingestion_runs)]
+    listings --> api[Backend services]
+    insights --> api
+    run --> api
+    api --> client[Frontend or API consumer]
 ```
 
-## Stage 1: source ingestion
+## Pipeline execution
 
-The project can ingest data from an external provider such as Adzuna or from repository-stored mock data. The data ingestion flow is implemented primarily through the clients and storage modules in the data pipeline.
+[`run_pipeline`](../data_pipeline/services/pipeline.py) creates an ingestion run before extraction. The run is an operational audit record even if a later stage fails.
 
-The bronze stage is important because it preserves the original response payload before transformation. This ensures the project retains raw source material for debugging and traceability.
+```mermaid
+sequenceDiagram
+    participant Scheduler
+    participant Pipeline
+    participant Source as AdzunaClient
+    participant Bronze as Bronze storage
+    participant DB as Database
+    participant Stats as Statistics
 
-## Stage 2: bronze storage
+    Scheduler->>Pipeline: run_pipeline()
+    Pipeline->>DB: create IngestionRun
+    Pipeline->>Source: iter_jobs(max_pages)
+    Source-->>Pipeline: job records
+    Pipeline->>Bronze: save_raw_payload()
+    Pipeline->>Bronze: load_bronze_json()
+    Bronze-->>Pipeline: DataFrame
+    Pipeline->>Pipeline: transform_dataframe()
+    Pipeline->>DB: upsert listings
+    Pipeline->>DB: append ListingHistory
+    Pipeline->>DB: inactivate missing/stale listings
+    Pipeline->>Stats: calculate salary statistics
+    Stats-->>Pipeline: insight values
+    Pipeline->>DB: save SalaryInsight
+    Pipeline->>DB: complete IngestionRun
+```
 
-Raw payloads are written to the bronze directory under the data folder. This preserves a timestamped snapshot of each incoming dataset.
+## Stage details
 
-The bronze storage logic is implemented in:
+### 1. Extraction
 
-- [data_pipeline/storage/raw.py](../data_pipeline/storage/raw.py)
-- [data_pipeline/storage/bronze_loader.py](../data_pipeline/storage/bronze_loader.py)
+The scheduled production path uses [`AdzunaClient`](../data_pipeline/clients/adzuna.py). `ADZUNA_MAX_PAGES` controls the page limit and `ADZUNA_MAX_JOBS`, when set, limits the number of collected records. A run fails if no jobs are returned.
 
-This allows the project to:
+The repository also contains [`ingest_mock.py`](../data_pipeline/services/ingest_mock.py) for loading `data/mock_jobs.json`, and [`ingest_adzuna.py`](../data_pipeline/services/ingest_adzuna.py) for a direct synchronization path. These helpers are useful for local work; the tracked, full-lifecycle path is `run_pipeline()`.
 
-- inspect original payload structure
-- reprocess historical source records
-- compare transformations across different runs
+### 2. Bronze storage
 
-## Stage 3: dataframe parsing and cleaning
+[`save_raw_payload`](../data_pipeline/storage/raw.py) creates `data/bronze` and writes JSON using a UTC filename such as `adzuna_20260904T120000Z.json`. The payload is saved before loading or cleaning, so the original extraction can be inspected independently of later processing.
 
-Bronze JSON data is loaded into a pandas DataFrame and transformed through the cleaning pipeline. The transformation logic handles:
+[`load_bronze_json`](../data_pipeline/storage/bronze_loader.py) supports:
 
-- missing-value removal
-- whitespace sanitization
-- nested object flattening
-- location extraction and normalization
-- salary normalization and midpoint assignment
-- dtype enforcement for database compatibility
+- `{ "pages": [{ "results": [...] }] }`
+- `{ "results": [...] }`
+- a top-level list of job records
 
-Key files:
+Unsupported JSON shapes raise `ValueError`.
 
-- [data_pipeline/processing/clean.py](../data_pipeline/processing/clean.py)
-- [data_pipeline/processing/transform.py](../data_pipeline/processing/transform.py)
+### 3. Cleaning and transformation
 
-## Stage 4: database persistence
+The processing layer converts nested source data into database columns, removes or standardizes missing values, normalizes locations and salaries, and enforces values suitable for SQLAlchemy persistence. The normalized salary columns are `normalized_salary_min`, `normalized_salary_max`, and `normalized_salary_midpoint`.
 
-After transformation, the cleaned listing rows are persisted into the Listing table. This table stores the canonical structured representation of each job record.
+### 4. Synchronization and lifecycle
 
-Relevant files:
+Incoming records are deduplicated by `id`. Existing listings are updated and new listings are inserted with `first_seen_at`, `last_seen_at`, and `is_active=True`. Each observed record also creates a `ListingHistory` row linked to the current `IngestionRun`.
 
-- [data_pipeline/database/models.py](../data_pipeline/database/models.py)
-- [data_pipeline/services/pipeline.py](../data_pipeline/services/pipeline.py)
+Listings not present in the current run are marked inactive. The stale-listing job also marks active records inactive when `last_seen_at` is older than `ADZUNA_STALE_AFTER_DAYS`. Records are retained for history rather than deleted.
 
-The listing model includes fields such as:
+```mermaid
+stateDiagram-v2
+    [*] --> Active: first seen
+    Active --> Active: seen in ingestion
+    Active --> Inactive: missing from run
+    Active --> Inactive: older than stale threshold
+    Inactive --> Active: seen again
+    Inactive --> [*]: retained in database
+```
 
-- title and description
-- salary min/max values
-- contract information
-- company and location metadata
-- normalized salary fields
-- geographic details when present
+### 5. Salary analysis
 
-## Stage 5: salary statistics and insights
+Salary statistics are calculated from normalized midpoint values. The pipeline stores a `SalaryInsight` snapshot containing counts, mean, median, minimum, maximum, standard deviation, quartiles, IQR, standard-deviation thresholds, outlier counts, and salary-range summaries.
 
-Once listings are persisted, the pipeline calculates salary statistics and stores a snapshot of those values in the salary_insights table.
+The API salary endpoints read the latest snapshot by `created_at`; they do not recalculate the full pipeline snapshot on every request. Some category and distribution analytics are calculated live from active listings.
 
-The analysis layer computes:
+### 6. API reads and writes
 
-- mean, median, min, max
-- standard deviation
-- Q1 and Q3 values
-- IQR
-- sigma-based thresholds
-- outlier counts and range summaries
+Backend services read `Listing`, `SalaryInsight`, and `IngestionRun` through the shared SQLAlchemy engine. Job filters and analytics are read operations. The application PATCH endpoint updates tracking fields on `Listing`, including status, priority, follow-up time, and notes.
 
-This work is implemented in:
+## Failure and observability path
 
-- [data_pipeline/processing/statistics.py](../data_pipeline/processing/statistics.py)
-- [data_pipeline/services/salary_insights.py](../data_pipeline/services/salary_insights.py)
+```mermaid
+flowchart TD
+    start[Create ingestion run] --> work[Pipeline stages]
+    work -->|success| success[status = success\ncompleted_at and counters recorded]
+    work -->|exception| failure[status = failed\ncompleted_at and error_message recorded]
+    success --> status[GET /ingestion/status]
+    failure --> status
+    status --> runs[GET /ingestion/runs]
+```
 
-These statistics are not just transient calculations. They are persisted as a historical snapshot, which is useful for comparing market conditions over time.
+The scheduler logs success or failure. The API exposes the same operational state through `/ingestion/status` and `/ingestion/runs`, while `/health` checks database availability and reports listing totals.
 
-## Stage 6: backend exposure
+## Data ownership
 
-The backend reads from the database and returns the processed listing data to the client layer. The current API surface exposes listing records through the /jobs endpoint in [backend/main.py](../backend/main.py).
-
-This means the backend is effectively a consumer of the pipeline’s persisted output, rather than the component that performs the transformation logic itself.
-
-## Stage 7: frontend presentation
-
-The frontend is intended to consume the backend data and render it visually. At this point, the pipeline is already producing the upstream data needed for the UI, which makes the frontend integration point much clearer than it would be in a less mature project.
-
-## Why this flow is strong
-
-The project’s core data flow is strong because it separates concerns cleanly:
-
-- raw data is preserved
-- transformation is explicit
-- database persistence is structured and consistent
-- analytical output is stored as a snapshot
-- the backend consumes completed data instead of re-deriving it ad hoc
-
-This makes the pipeline well suited for testing, debugging, and future extension.
-
-## Current operational note
-
-The pipeline is effectively complete enough to be treated as the project’s analytical core. The remaining work is mostly around integration and product maturity in the backend and frontend layers.
+| Data             | Written by                                       | Read by                                         |
+| ---------------- | ------------------------------------------------ | ----------------------------------------------- |
+| Bronze JSON      | `storage/raw.py`                                 | bronze loader and operators                     |
+| Current listings | pipeline synchronization and application tracker | backend services and analytics                  |
+| Listing history  | pipeline synchronization                         | database consumers and future history analytics |
+| Salary insights  | pipeline salary insight service                  | analytics API                                   |
+| Ingestion runs   | pipeline orchestration                           | system API and operators                        |

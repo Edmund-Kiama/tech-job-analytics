@@ -1,54 +1,76 @@
 # Project Documentation
 
-This folder contains the project-level documentation for the UKJob Analytics repository.
+UKJob Analytics combines a Python data pipeline, a FastAPI backend, and a React/Vite frontend. It collects technology job listings, preserves source payloads, normalizes the data, computes salary insights, and exposes the results for interactive use.
 
-## Scope
+## Start here
 
-This project combines a Python-based data pipeline, a FastAPI backend, and a React frontend to collect, clean, analyze, and present job market data for technology roles.
+```mermaid
+flowchart LR
+    setup[Setup environment] --> db[Initialize database]
+    db --> ingest[Run ingestion]
+    ingest --> api[Start FastAPI]
+    api --> frontend[Start Vite frontend]
+    frontend --> verify[Verify API and UI]
+```
 
-## Current status
+1. Read [setup.md](setup.md) for dependencies, environment variables, database initialization, and local startup.
+2. Read [architecture.md](architecture.md) for module ownership and runtime boundaries.
+3. Read [data-flow.md](data-flow.md) for record lineage and ingestion behavior.
+4. Read [backend/README.md](../backend/README.md) for the complete API contract.
 
-The data pipeline is the most mature and functionally complete part of the repository. It already performs end-to-end ingestion, cleaning, database persistence, and salary-statistic generation.
+## Repository map
 
-The backend and frontend are still under active development and should be treated as evolving application layers rather than fully stabilized production interfaces.
+```text
+.
+├── backend/             FastAPI app, routers, API schemas, and API services
+├── data/                Mock input and timestamped bronze snapshots
+├── data_pipeline/       Clients, processing, storage, database, scheduler,
+│                        ingestion orchestration, and pipeline tests
+├── docs/                Project architecture, flow, and setup documentation
+├── frontend/            React/Vite application and frontend tooling
+└── pyproject.toml       Ruff configuration and Python project tooling
+```
 
-## Documentation map
+## Implemented capabilities
 
-- [architecture.md](architecture.md) – overall system design and module responsibilities
-- [setup.md](setup.md) – local environment setup and startup workflow
-- [data-flow.md](data-flow.md) – data lineage from source files to analytics outputs
+- Adzuna extraction with configurable page and job limits
+- Mock-data ingestion for local development
+- Immutable timestamped bronze payloads
+- DataFrame cleaning, flattening, and salary normalization
+- Current listing synchronization with inactive/stale lifecycle handling
+- Listing observation history per ingestion run
+- Salary insight snapshots with distribution and outlier statistics
+- Daily scheduled ingestion at 02:00 UTC when the backend process is running
+- FastAPI endpoints for jobs, application tracking, analytics, health, and ingestion monitoring
+- React/Vite frontend build, lint, typecheck, and development workflow
 
-## Repository layout
+## Current maturity
 
-- [backend](../backend) – FastAPI application layer and request-facing logic
-- [data_pipeline](../data_pipeline) – complete ingestion, transformation, validation, and analytics pipeline
-- [frontend](../frontend) – React/Vite user interface currently under development
-- [data](../data) – raw and bronze job data snapshots
-- [pyproject.toml](../pyproject.toml) – Python tooling and project configuration
+The pipeline and its test suite provide the project’s most established core. The backend is functional and has a documented API, but analytics response models are intentionally flexible while contracts continue to settle. The frontend is an active application layer and should be tested against the running API rather than treated as a static artifact.
 
-## Architectural summary
+## Important boundaries
 
-The repository follows a layered design:
+- `data_pipeline` owns ingestion, transformation, database synchronization, and persisted salary analysis.
+- `backend` owns HTTP concerns, serialization, filtering, application tracking, and API-facing analytics queries.
+- `frontend` owns presentation and client interaction.
+- `data/bronze` is source lineage and should not be treated as the canonical current dataset; the database is the serving store.
 
-1. Source data and bronze snapshots are stored in the data layer.
-2. The data pipeline cleans and transforms the data into normalized listings.
-3. Salary and market statistics are calculated and stored in the database.
-4. The backend exposes processed data through API endpoints.
-5. The frontend consumes those results and presents them to users.
+## Verification commands
 
-## Pipeline maturity
+From the repository root:
 
-The data pipeline already includes the following responsibilities:
+```bash
+python -m pytest data_pipeline/tests
+python -m compileall -q backend data_pipeline
+```
 
-- Adzuna data retrieval and ingestion
-- bronze payload persistence
-- dataframe-level cleaning and normalization
-- standardized salary handling and midpoint generation
-- SQLite persistence for listings and salary insights
-- analytical snapshot generation for job market statistics
+For the frontend:
 
-This means the pipeline can be treated as a near-complete analytical core, even though the app layer around it is still being finalized.
+```bash
+cd frontend
+npm run lint
+npm run typecheck
+npm run build
+```
 
-## Working assumptions
-
-This project is intentionally structured to keep the pipeline independent from the frontend and backend implementation details. That allows the analytics layer to remain stable while the presentation layer continues to evolve.
+The API’s generated contract is available from a running server at `/docs`, `/redoc`, and `/openapi.json`.

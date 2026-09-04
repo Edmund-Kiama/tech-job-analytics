@@ -98,7 +98,7 @@ export default function JobDetailPage({ jobId, onBack }) {
               />
             </div>
           </section>
-          <ApplicationTracker job={job} />
+          <ApplicationTracker job={job} onUpdated={() => undefined} />
         </aside>
       </div>
     </div>
@@ -115,7 +115,7 @@ function BackButton({ onBack }) {
       <span aria-hidden="true">←</span> Back to job explorer
     </button>
   );
-} 
+}
 
 function Detail({ label, value }) {
   return (

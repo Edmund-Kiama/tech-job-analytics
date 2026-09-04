@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import type { ApplicationUpdate, JobFilters } from './typings/api-typings';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 // async function fetchApi(endpoint) {
 //   const response = await fetch(`${API_BASE_URL}${endpoint}`);
@@ -22,7 +24,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 //   return response.json();
 // }
 
-async function fetchApi(endpoint, options = {}) {
+async function fetchApi(
+  endpoint: string,
+  options: globalThis.RequestInit = {}
+) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       'Content-Type': 'application/json',
@@ -56,15 +61,15 @@ async function fetchApi(endpoint, options = {}) {
   return response.json();
 }
 
-export async function getJobs(filters = {}) {
+export async function getJobs(filters: Partial<JobFilters> = {}) {
   const params = new URLSearchParams();
 
   if (filters.page) {
-    params.set('page', filters.page);
+    params.set('page', String(filters.page));
   }
 
   if (filters.page_size) {
-    params.set('page_size', filters.page_size);
+    params.set('page_size', String(filters.page_size));
   }
 
   if (filters.search) {
@@ -106,7 +111,7 @@ export async function getJobs(filters = {}) {
   return fetchApi(`/jobs?${params.toString()}`);
 }
 
-export async function getJob(jobId) {
+export async function getJob(jobId: string) {
   return fetchApi(`/jobs/${encodeURIComponent(jobId)}`);
 }
 
@@ -130,18 +135,24 @@ export async function getAnalyticsSummary() {
   return fetchApi('/analytics/summary');
 }
 
-export async function getJobApplication(jobId) {
+export async function getJobApplication(jobId: string) {
   return fetchApi(`/jobs/${jobId}/application`);
 }
 
-export async function updateJobApplication(jobId, updates) {
+export async function updateJobApplication(
+  jobId: string,
+  updates: ApplicationUpdate
+) {
   return fetchApi(`/jobs/${jobId}/application`, {
     method: 'PATCH',
     body: JSON.stringify(updates),
   });
 }
 
-export async function getApplications(status = null, priority = null) {
+export async function getApplications(
+  status: string | null = null,
+  priority: number | null = null
+) {
   const params = new URLSearchParams();
 
   if (status) {
@@ -149,7 +160,7 @@ export async function getApplications(status = null, priority = null) {
   }
 
   if (priority !== null && priority !== undefined) {
-    params.set('priority', priority);
+    params.set('priority', String(priority));
   }
 
   const query = params.toString();
@@ -157,7 +168,7 @@ export async function getApplications(status = null, priority = null) {
   return fetchApi(query ? `/applications?${query}` : '/applications');
 }
 
-export async function getSalaryDistribution(category = null) {
+export async function getSalaryDistribution(category: string | null = null) {
   const params = new URLSearchParams();
 
   if (category) {

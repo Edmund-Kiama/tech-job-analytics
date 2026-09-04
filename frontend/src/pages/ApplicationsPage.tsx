@@ -1,28 +1,26 @@
-import { useEffect, useState } from "react";
-import {
-  getApplications,
-} from "../api";
+import { useEffect, useState } from 'react';
+import { getApplications } from '../api';
 
 const STATUSES = [
-  "ALL",
-  "SAVED",
-  "APPLIED",
-  "INTERVIEW",
-  "OFFER",
-  "REJECTED",
-  "ARCHIVED",
+  'ALL',
+  'SAVED',
+  'APPLIED',
+  'INTERVIEW',
+  'OFFER',
+  'REJECTED',
+  'ARCHIVED',
 ];
 
 const PRIORITIES = [
-  { value: "", label: "All priorities" },
-  { value: "3", label: "High" },
-  { value: "2", label: "Medium" },
-  { value: "1", label: "Low" },
+  { value: '', label: 'All priorities' },
+  { value: '3', label: 'High' },
+  { value: '2', label: 'Medium' },
+  { value: '1', label: 'Low' },
 ];
 
 function formatDate(value) {
   if (!value) {
-    return "—";
+    return '—';
   }
 
   return new Date(value).toLocaleDateString();
@@ -30,37 +28,37 @@ function formatDate(value) {
 
 function statusClass(status) {
   const classes = {
-    SAVED: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
-    APPLIED: "bg-purple-500/10 text-purple-700 dark:text-purple-300",
-    INTERVIEW: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-    OFFER: "bg-green-500/10 text-green-700 dark:text-green-300",
-    REJECTED: "bg-red-500/10 text-red-700 dark:text-red-300",
-    ARCHIVED: "bg-muted text-muted-foreground",
+    SAVED: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
+    APPLIED: 'bg-purple-500/10 text-purple-700 dark:text-purple-300',
+    INTERVIEW: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    OFFER: 'bg-green-500/10 text-green-700 dark:text-green-300',
+    REJECTED: 'bg-red-500/10 text-red-700 dark:text-red-300',
+    ARCHIVED: 'bg-muted text-muted-foreground',
   };
 
-  return classes[status] || "bg-muted text-muted-foreground";
+  return classes[status] || 'bg-muted text-muted-foreground';
 }
 
 function priorityLabel(priority) {
   if (priority === 3) {
-    return "High";
+    return 'High';
   }
 
   if (priority === 2) {
-    return "Medium";
+    return 'Medium';
   }
 
   if (priority === 1) {
-    return "Low";
+    return 'Low';
   }
 
-  return "—";
+  return '—';
 }
 
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState([]);
-  const [status, setStatus] = useState("ALL");
-  const [priority, setPriority] = useState("");
+  const [status, setStatus] = useState('ALL');
+  const [priority, setPriority] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -71,8 +69,8 @@ export default function ApplicationsPage() {
         setError(null);
 
         const data = await getApplications(
-          status === "ALL" ? null : status,
-          priority || null
+          status === 'ALL' ? null : status,
+          priority ? Number(priority) : null
         );
 
         setApplications(data);
@@ -89,33 +87,24 @@ export default function ApplicationsPage() {
   return (
     <section className="">
       <div className="mb-6">
-        <p className="text-sm font-medium text-primary">
-          APPLICATION TRACKER
-        </p>
+        <p className="text-sm font-medium text-primary">APPLICATION TRACKER</p>
 
-        <h2 className="mt-1 text-2xl font-semibold">
-          My Applications
-        </h2>
+        <h2 className="mt-1 text-2xl font-semibold">My Applications</h2>
 
         <p className="mt-2 text-sm text-muted-foreground">
-          Track saved jobs, applications, interviews,
-          offers and rejected applications.
+          Track saved jobs, applications, interviews, offers and rejected
+          applications.
         </p>
       </div>
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row">
         <select
           value={status}
-          onChange={(event) =>
-            setStatus(event.target.value)
-          }
+          onChange={(event) => setStatus(event.target.value)}
           className="rounded-lg border bg-background px-3 py-2 text-sm"
         >
           {STATUSES.map((item) => (
-            <option
-              key={item}
-              value={item}
-            >
+            <option key={item} value={item}>
               {item}
             </option>
           ))}
@@ -123,16 +112,11 @@ export default function ApplicationsPage() {
 
         <select
           value={priority}
-          onChange={(event) =>
-            setPriority(event.target.value)
-          }
+          onChange={(event) => setPriority(event.target.value)}
           className="rounded-lg border bg-background px-3 py-2 text-sm"
         >
           {PRIORITIES.map((item) => (
-            <option
-              key={item.value}
-              value={item.value}
-            >
+            <option key={item.value} value={item.value}>
               {item.label}
             </option>
           ))}
@@ -151,39 +135,29 @@ export default function ApplicationsPage() {
         </div>
       )}
 
-      {!loading &&
-        !error &&
-        applications.length === 0 && (
-          <div className="rounded-xl border bg-card p-8 text-center">
-            <h3 className="font-semibold">
-              No applications found
-            </h3>
+      {!loading && !error && applications.length === 0 && (
+        <div className="rounded-xl border bg-card p-8 text-center">
+          <h3 className="font-semibold">No applications found</h3>
 
-            <p className="mt-2 text-sm text-muted-foreground">
-              Save a job or mark one as applied to
-              start tracking it.
-            </p>
-          </div>
-        )}
+          <p className="mt-2 text-sm text-muted-foreground">
+            Save a job or mark one as applied to start tracking it.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-4">
         {applications.map((job) => (
-          <article
-            key={job.id}
-            className="rounded-xl border bg-card p-5"
-          >
+          <article key={job.id} className="rounded-xl border bg-card p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <h3 className="text-lg font-semibold">
-                  {job.title}
-                </h3>
+                <h3 className="text-lg font-semibold">{job.title}</h3>
 
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {job.company_name || "Unknown company"}
+                  {job.company_name || 'Unknown company'}
                 </p>
 
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {job.location_name || "Location not specified"}
+                  {job.location_name || 'Location not specified'}
                 </p>
               </div>
 
@@ -198,9 +172,7 @@ export default function ApplicationsPage() {
 
                 {job.user_priority && (
                   <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium">
-                    {priorityLabel(
-                      job.user_priority
-                    )}
+                    {priorityLabel(job.user_priority)}
                   </span>
                 )}
               </div>
@@ -208,33 +180,21 @@ export default function ApplicationsPage() {
 
             <div className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
               <div>
-                <span className="text-muted-foreground">
-                  Saved
-                </span>
+                <span className="text-muted-foreground">Saved</span>
 
-                <p className="font-medium">
-                  {formatDate(job.saved_at)}
-                </p>
+                <p className="font-medium">{formatDate(job.saved_at)}</p>
               </div>
 
               <div>
-                <span className="text-muted-foreground">
-                  Applied
-                </span>
+                <span className="text-muted-foreground">Applied</span>
 
-                <p className="font-medium">
-                  {formatDate(job.applied_at)}
-                </p>
+                <p className="font-medium">{formatDate(job.applied_at)}</p>
               </div>
 
               <div>
-                <span className="text-muted-foreground">
-                  Follow-up
-                </span>
+                <span className="text-muted-foreground">Follow-up</span>
 
-                <p className="font-medium">
-                  {formatDate(job.follow_up_at)}
-                </p>
+                <p className="font-medium">{formatDate(job.follow_up_at)}</p>
               </div>
             </div>
 
@@ -244,9 +204,7 @@ export default function ApplicationsPage() {
                   Notes
                 </p>
 
-                <p className="mt-1 text-sm">
-                  {job.application_notes}
-                </p>
+                <p className="mt-1 text-sm">{job.application_notes}</p>
               </div>
             )}
 

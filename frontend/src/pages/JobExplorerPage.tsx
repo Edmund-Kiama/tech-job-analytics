@@ -376,7 +376,7 @@ function updateUrl(filters) {
       key !== 'page' &&
       key !== 'page_size'
     )
-      params.set(key, value);
+      params.set(key, String(value));
   });
   if (filters.page > 1) params.set('page', filters.page);
   if (filters.page_size !== DEFAULT_PAGE_SIZE)

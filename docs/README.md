@@ -1,6 +1,6 @@
 # Project Documentation
 
-This folder contains the project-level documentation for the Tech Job Analytics repository.
+This folder contains the project-level documentation for the UKJob Analytics repository.
 
 ## Scope
 

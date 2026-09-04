@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The backend provides API access for the Tech Job Analytics application. It exposes data from the project’s database layer and acts as the application boundary between the frontend and the processing pipeline.
+The backend provides API access for the UKJob Analytics application. It exposes data from the project’s database layer and acts as the application boundary between the frontend and the processing pipeline.
 
 ## Current implementation
 

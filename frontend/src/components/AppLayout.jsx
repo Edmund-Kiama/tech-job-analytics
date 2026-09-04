@@ -72,7 +72,7 @@ function Brand() {
   return (
     <div>
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
-        Tech job analytics
+        UK job analytics
       </p>
       <p className="mt-2 text-lg font-bold tracking-tight">
         Career command center

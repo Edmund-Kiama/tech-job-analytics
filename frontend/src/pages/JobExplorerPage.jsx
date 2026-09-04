@@ -25,9 +25,12 @@ export default function JobExplorerPage({ onOpenJob }) {
   }));
   const [result, setResult] = useState({
     items: [],
-    total: 0,
-    total_pages: 1,
-    page: 1,
+    pagination: {
+      page: 1,
+      page_size: DEFAULT_PAGE_SIZE,
+      total: 0,
+      total_pages: 1,
+    },
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -75,7 +78,7 @@ export default function JobExplorerPage({ onOpenJob }) {
         <p className="text-sm text-muted-foreground">
           {loading
             ? 'Loading jobs...'
-            : `Showing ${result.items?.length || 0} of ${result.total || 0} jobs`}
+            : `Showing ${result.items?.length || 0} of ${result.pagination?.total || 0} jobs`}
         </p>
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
           Per page
@@ -120,8 +123,8 @@ export default function JobExplorerPage({ onOpenJob }) {
         <>
           <JobTable jobs={result.items} onOpenJob={onOpenJob} />
           <Pagination
-            page={result.page || filters.page}
-            totalPages={result.total_pages || 1}
+            page={result.pagination?.page || filters.page}
+            totalPages={result.pagination?.total_pages || 1}
             onChange={(page) => setFilters((current) => ({ ...current, page }))}
           />
         </>

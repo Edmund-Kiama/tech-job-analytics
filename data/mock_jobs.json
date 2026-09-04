@@ -20,11 +20,7 @@
       },
       "location": {
         "display_name": "Birmingham, West Midlands",
-        "area": [
-          "UK",
-          "West Midlands",
-          "Birmingham"
-        ]
+        "area": ["UK", "West Midlands", "Birmingham"]
       },
       "latitude": 52.4862,
       "longitude": -1.8904
@@ -49,11 +45,7 @@
       },
       "location": {
         "display_name": "Manchester, Greater Manchester",
-        "area": [
-          "UK",
-          "Greater Manchester",
-          "Manchester"
-        ]
+        "area": ["UK", "Greater Manchester", "Manchester"]
       },
       "latitude": 53.4808,
       "longitude": -2.2426
@@ -70,7 +62,7 @@
       "contract_time": "full_time",
       "contract_type": "permanent",
       "company": {
-        "display_name": "Tech Systems UK"
+        "display_name": "UKSystems UK"
       },
       "category": {
         "label": "IT Jobs",
@@ -78,10 +70,7 @@
       },
       "location": {
         "display_name": "London",
-        "area": [
-          "UK",
-          "London"
-        ]
+        "area": ["UK", "London"]
       },
       "latitude": 51.5074,
       "longitude": -0.1278

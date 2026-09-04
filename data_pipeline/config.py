@@ -21,6 +21,7 @@ class Settings:
     ADZUNA_MAX_DAYS_OLD = os.getenv("ADZUNA_MAX_DAYS_OLD")
     ADZUNA_STALE_AFTER_DAYS = os.getenv("ADZUNA_STALE_AFTER_DAYS")
     ADZUNA_ANALYSIS_VERSION = os.getenv("ADZUNA_ANALYSIS_VERSION")
+    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "").split(",")
 
 
 settings = Settings()

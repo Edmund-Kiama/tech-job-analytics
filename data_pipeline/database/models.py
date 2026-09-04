@@ -29,8 +29,8 @@ class Listing(Base):
 
     adref: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
-    salary_min: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    salary_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    salary_min: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    salary_max: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     salary_is_predicted: Mapped[Optional[bool]] = mapped_column(
         Boolean,
         nullable=True,
@@ -276,13 +276,13 @@ class ListingHistory(Base):
 
     title: Mapped[str] = mapped_column(String, nullable=False)
 
-    salary_min: Mapped[Optional[int]] = mapped_column(
-        Integer,
+    salary_min: Mapped[Optional[float]] = mapped_column(
+        Float,
         nullable=True,
     )
 
-    salary_max: Mapped[Optional[int]] = mapped_column(
-        Integer,
+    salary_max: Mapped[Optional[float]] = mapped_column(
+        Float,
         nullable=True,
     )
 

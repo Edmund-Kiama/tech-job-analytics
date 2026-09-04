@@ -37,11 +37,11 @@ export default function App() {
   const activePath = route.path === '/job-detail' ? '/jobs' : route.path;
   const page =
     route.path === '/analytics/salary' ? (
-      <AnalyticsPage section="salary" />
+      <AnalyticsPage key={route.path} section="salary" />
     ) : route.path === '/analytics/market' ? (
-      <AnalyticsPage section="market" />
+      <AnalyticsPage key={route.path} section="market" />
     ) : route.path === '/analytics/trends' ? (
-      <AnalyticsPage section="trends" />
+      <AnalyticsPage key={route.path} section="trends" />
     ) : route.path === '/applications' ? (
       <ApplicationsPage />
     ) : route.path === '/jobs' ? (

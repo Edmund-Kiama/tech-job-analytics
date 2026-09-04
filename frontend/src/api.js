@@ -37,7 +37,9 @@ async function fetchApi(endpoint, options = {}) {
     try {
       const errorData = await response.json();
 
-      if (errorData.detail) {
+      if (errorData.error?.message) {
+        message = errorData.error.message;
+      } else if (errorData.detail) {
         if (Array.isArray(errorData.detail)) {
           message = errorData.detail.map((item) => item.msg).join(', ');
         } else {

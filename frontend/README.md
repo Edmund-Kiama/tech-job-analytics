@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The frontend provides the user-facing interface for the Tech Job Analytics application. It is responsible for rendering job and salary analytics to end users in a browser-based experience.
+The frontend provides the user-facing interface for the UKJob Analytics application. It is responsible for rendering job and salary analytics to end users in a browser-based experience.
 
 ## Stack
 

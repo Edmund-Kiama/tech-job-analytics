@@ -822,7 +822,7 @@ export function TopSalaryJobs({ jobs }) {
       </div>
 
       <div className="mt-6 overflow-x-auto">
-        <table className="w-full min-w-[700px] text-sm">
+        <table className="w-full min-w-175 text-sm">
           <thead>
             <tr className="border-b border-border text-left">
               <th className="px-3 py-3 font-medium text-muted-foreground">#</th>

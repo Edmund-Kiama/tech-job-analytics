@@ -277,7 +277,7 @@ function JobTable({ jobs, onOpenJob }) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] text-left text-sm">
+        <table className="w-full min-w-225 text-left text-sm">
           <thead className="border-b border-border bg-muted/50">
             <tr>
               {[
@@ -298,7 +298,7 @@ function JobTable({ jobs, onOpenJob }) {
           <tbody className="divide-y divide-border">
             {jobs.map((job) => (
               <tr key={job.id} className="hover:bg-muted/30">
-                <td className="max-w-[280px] px-5 py-4">
+                <td className="max-w-70 px-5 py-4">
                   <p className="font-semibold">{job.title}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {job.category_label || 'Uncategorized'}

@@ -73,7 +73,7 @@ export function CompaniesPage() {
               median.
             </p>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[620px] text-left text-sm">
+              <table className="w-full min-w-155 text-left text-sm">
                 <thead className="border-b border-border">
                   <tr>
                     <th className="px-3 py-3 font-medium text-muted-foreground">
@@ -334,7 +334,7 @@ export function DataHealthPage() {
           <Panel>
             <h2 className="text-lg font-semibold">Ingestion history</h2>
             <div className="mt-5 overflow-x-auto">
-              <table className="w-full min-w-[680px] text-left text-sm">
+              <table className="w-full min-w-170 text-left text-sm">
                 <thead className="border-b border-border">
                   <tr>
                     <th className="px-3 py-3 font-medium text-muted-foreground">

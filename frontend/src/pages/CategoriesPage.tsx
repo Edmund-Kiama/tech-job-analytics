@@ -78,7 +78,7 @@ export default function CategoriesPage({ onOpenJob }) {
             <p className="mt-1 text-sm text-muted-foreground">
               {categories.length} categories found
             </p>
-            <div className="mt-5 max-h-[32rem] space-y-1 overflow-y-auto">
+            <div className="mt-5 max-h-128 space-y-1 overflow-y-auto">
               {categories.map((category) => (
                 <button
                   key={category}
@@ -135,7 +135,7 @@ function CategoryContent({ data, onOpenJob }) {
           </p>
         </div>
         <div className="mt-5 overflow-x-auto">
-          <table className="w-full min-w-[680px] text-left text-sm">
+          <table className="w-full min-w-170 text-left text-sm">
             <thead className="border-b border-border">
               <tr>
                 <th className="px-3 py-3 font-medium text-muted-foreground">

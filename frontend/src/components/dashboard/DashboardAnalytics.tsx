@@ -7,10 +7,12 @@ import {
   LineChart,
   ReferenceLine,
   ResponsiveContainer,
+  Legend,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
+import { FiArrowRight } from 'react-icons/fi';
 
 import {
   getAnalyticsBreakdown,
@@ -22,13 +24,23 @@ import PageIntro from '../PageIntro';
 import Loader from '../Loader';
 import Panel from '../Panel';
 
-export default function DashboardPage() {
-  const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function DashboardPage({ onNavigate, refreshOnLoad = true }) {
+  const [analytics, setAnalytics] = useState(() =>
+    refreshOnLoad ? null : readCachedAnalytics()
+  );
+  const [loading, setLoading] = useState(() =>
+    refreshOnLoad ? true : !readCachedAnalytics()
+  );
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
+
+    if (!refreshOnLoad && readCachedAnalytics()) {
+      return () => {
+        cancelled = true;
+      };
+    }
 
     Promise.all([
       getSalaryAnalytics(),
@@ -45,6 +57,10 @@ export default function DashboardPage() {
           breakdown,
           trends,
         });
+        sessionStorage.setItem(
+          'dashboard-analytics',
+          JSON.stringify({ salary, summary, breakdown, trends })
+        );
         setLoading(false);
       })
       .catch((loadError) => {
@@ -57,7 +73,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshOnLoad]);
 
   return (
     <div>
@@ -81,12 +97,14 @@ export default function DashboardPage() {
         </Panel>
       )}
 
-      {analytics && <DashboardContent analytics={analytics} />}
+      {analytics && (
+        <DashboardContent analytics={analytics} onNavigate={onNavigate} />
+      )}
     </div>
   );
 }
 
-function DashboardContent({ analytics }) {
+function DashboardContent({ analytics, onNavigate }) {
   const { summary, breakdown } = analytics;
 
   const activeJobs = breakdown.job_status?.active ?? 0;
@@ -122,13 +140,49 @@ function DashboardContent({ analytics }) {
       </section>
 
       <Panel>
-        <h2 className="text-lg font-semibold">Your analytics workspace</h2>
+        <h2 className="text-lg font-semibold">Answer the big questions</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Use the analytics pages in the sidebar to explore salary, market
-          structure, and activity in detail.
+          Jump straight to the views that explain the market and guide your next
+          application decision.
         </p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <DashboardShortcut
+            title="What can I earn?"
+            detail="Compare salary distributions, mean, median, and coverage."
+            onClick={() => onNavigate('/analytics/salary')}
+          />
+          <DashboardShortcut
+            title="Where is demand?"
+            detail="See the categories and locations with the most listings."
+            onClick={() => onNavigate('/analytics/market')}
+          />
+          <DashboardShortcut
+            title="What is changing?"
+            detail="Track additions, inactivations, and active market volume."
+            onClick={() => onNavigate('/analytics/trends')}
+          />
+        </div>
       </Panel>
     </div>
+  );
+}
+
+function DashboardShortcut({ title, detail, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-lg border border-border bg-background p-4 text-left transition hover:border-primary hover:bg-muted"
+    >
+      <span className="font-semibold">{title}</span>
+      <span className="mt-2 block text-sm leading-5 text-muted-foreground">
+        {detail}
+      </span>
+      <span className="mt-4 block text-sm font-medium text-primary">
+        Explore analytics{' '}
+        <FiArrowRight className="inline-block" aria-hidden="true" />
+      </span>
+    </button>
   );
 }
 
@@ -527,15 +581,19 @@ export function CategoryAnalytics({ categories }) {
 
               <Tooltip formatter={(value) => money(value, true)} />
 
+              <Legend />
+
               <Bar
                 dataKey="mean_salary"
                 name="Mean salary"
+                fill="#0f766e"
                 radius={[0, 4, 4, 0]}
               />
 
               <Bar
                 dataKey="median_salary"
                 name="Median salary"
+                fill="#e07a3f"
                 radius={[0, 4, 4, 0]}
               />
             </BarChart>
@@ -630,15 +688,19 @@ export function LocationAnalytics({ locations }) {
 
               <Tooltip formatter={(value) => money(value, true)} />
 
+              <Legend />
+
               <Bar
                 dataKey="mean_salary"
                 name="Mean salary"
+                fill="#0f766e"
                 radius={[0, 4, 4, 0]}
               />
 
               <Bar
                 dataKey="median_salary"
                 name="Median salary"
+                fill="#e07a3f"
                 radius={[0, 4, 4, 0]}
               />
             </BarChart>
@@ -998,4 +1060,14 @@ function money(value, rounded = false) {
   return value == null
     ? '—'
     : `£${(rounded ? Math.round(value) : value).toLocaleString()}`;
+}
+
+function readCachedAnalytics() {
+  try {
+    const cached = sessionStorage.getItem('dashboard-analytics');
+    return cached ? JSON.parse(cached) : null;
+  } catch {
+    sessionStorage.removeItem('dashboard-analytics');
+    return null;
+  }
 }

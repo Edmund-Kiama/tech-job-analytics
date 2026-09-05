@@ -23,6 +23,13 @@ const DEFAULT_SETTINGS = {
   reminderWindow: '3',
 };
 
+const DEFAULT_PROFILE = {
+  target_titles: '',
+  preferred_locations: '',
+  preferred_categories: '',
+  preferred_contract_types: '',
+};
+
 function readSettings() {
   try {
     return {
@@ -31,6 +38,17 @@ function readSettings() {
     };
   } catch {
     return DEFAULT_SETTINGS;
+  }
+}
+
+function readProfile() {
+  try {
+    return {
+      ...DEFAULT_PROFILE,
+      ...JSON.parse(localStorage.getItem('job-profile') || '{}'),
+    };
+  } catch {
+    return DEFAULT_PROFILE;
   }
 }
 
@@ -49,6 +67,7 @@ export default function App() {
   const [theme, setTheme] = useTheme();
   const [route, setRoute] = useState(getRoute);
   const [settings, setSettings] = useState(readSettings);
+  const [profile, setProfile] = useState(readProfile);
 
   useEffect(() => {
     const handlePopState = () => setRoute(getRoute());
@@ -70,6 +89,11 @@ export default function App() {
     });
   }
 
+  function updateProfile(nextProfile) {
+    setProfile(nextProfile);
+    localStorage.setItem('job-profile', JSON.stringify(nextProfile));
+  }
+
   const activePath = route.path === '/job-detail' ? '/jobs' : route.path;
   const page =
     route.path === '/analytics/salary' ? (
@@ -82,6 +106,8 @@ export default function App() {
       <ApplicationsPage />
     ) : route.path === '/recommended' ? (
       <RecommendedJobsPage
+        profile={profile}
+        onProfileSave={updateProfile}
         onOpenJob={(job) => navigate(`/jobs/${encodeURIComponent(job.id)}`)}
       />
     ) : route.path === '/categories' ? (
@@ -91,11 +117,16 @@ export default function App() {
     ) : route.path === '/companies' ? (
       <CompaniesPage />
     ) : route.path === '/follow-ups' ? (
-      <FollowUpsPage />
+      <FollowUpsPage reminderWindow={settings.reminderWindow} />
     ) : route.path === '/data-health' ? (
       <DataHealthPage />
     ) : route.path === '/settings' ? (
-      <SettingsPage settings={settings} updateSettings={updateSettings} />
+      <SettingsPage
+        settings={settings}
+        updateSettings={updateSettings}
+        profile={profile}
+        onProfileSave={updateProfile}
+      />
     ) : route.path === '/jobs' ? (
       <JobExplorerPage
         onOpenJob={(job) => navigate(`/jobs/${encodeURIComponent(job.id)}`)}
@@ -103,7 +134,10 @@ export default function App() {
     ) : route.path === '/job-detail' ? (
       <JobDetailPage jobId={route.jobId} onBack={() => navigate('/jobs')} />
     ) : (
-      <DashboardPage />
+      <DashboardPage
+        onNavigate={navigate}
+        refreshOnLoad={settings.refreshOnLoad}
+      />
     );
 
   return (

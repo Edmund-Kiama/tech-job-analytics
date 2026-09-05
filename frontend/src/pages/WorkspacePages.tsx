@@ -44,54 +44,108 @@ export function CompaniesPage() {
         </Panel>
       )}{' '}
       {companies.length > 0 && (
-        <Panel>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[620px] text-left text-sm">
-              <thead className="border-b border-border">
-                <tr>
-                  <th className="px-3 py-3 font-medium text-muted-foreground">
-                    Company
-                  </th>
-                  <th className="px-3 py-3 text-right font-medium text-muted-foreground">
-                    Jobs
-                  </th>
-                  <th className="px-3 py-3 text-right font-medium text-muted-foreground">
-                    Mean salary
-                  </th>
-                  <th className="px-3 py-3 text-right font-medium text-muted-foreground">
-                    Median salary
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {companies.map((company, index) => (
-                  <tr key={company.company || index}>
-                    <td className="px-3 py-4 font-medium">
-                      {company.company ||
-                        company.company_name ||
-                        'Unknown company'}
-                    </td>
-                    <td className="px-3 py-4 text-right">
-                      {company.job_count ?? company.count ?? '—'}
-                    </td>
-                    <td className="px-3 py-4 text-right">
-                      {money(company.mean_salary)}
-                    </td>
-                    <td className="px-3 py-4 text-right">
-                      {money(company.median_salary)}
-                    </td>
+        <div className="space-y-6">
+          <section className="grid gap-4 sm:grid-cols-3">
+            <CompanyMetric
+              label="Employers represented"
+              value={companies.length}
+            />
+            <CompanyMetric
+              label="Most active employer"
+              value={companies[0]?.job_count ?? companies[0]?.count ?? '—'}
+              detail={companies[0]?.company || companies[0]?.company_name}
+            />
+            <CompanyMetric
+              label="Highest mean salary"
+              value={money(
+                companies.reduce(
+                  (highest, company) =>
+                    Math.max(highest, Number(company.mean_salary) || 0),
+                  0
+                )
+              )}
+            />
+          </section>
+          <Panel>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Compare employer presence and compensation at a glance. Salary
+              spread shows how far the typical mean sits above or below the
+              median.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[620px] text-left text-sm">
+                <thead className="border-b border-border">
+                  <tr>
+                    <th className="px-3 py-3 font-medium text-muted-foreground">
+                      Company
+                    </th>
+                    <th className="px-3 py-3 text-right font-medium text-muted-foreground">
+                      Jobs
+                    </th>
+                    <th className="px-3 py-3 text-right font-medium text-muted-foreground">
+                      Mean salary
+                    </th>
+                    <th className="px-3 py-3 text-right font-medium text-muted-foreground">
+                      Median salary
+                    </th>
+                    <th className="px-3 py-3 text-right font-medium text-muted-foreground">
+                      Mean vs median
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Panel>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {companies.map((company, index) => (
+                    <tr key={company.company || index}>
+                      <td className="px-3 py-4 font-medium">
+                        {company.company ||
+                          company.company_name ||
+                          'Unknown company'}
+                      </td>
+                      <td className="px-3 py-4 text-right">
+                        {company.job_count ?? company.count ?? '—'}
+                      </td>
+                      <td className="px-3 py-4 text-right">
+                        {money(company.mean_salary)}
+                      </td>
+                      <td className="px-3 py-4 text-right">
+                        {money(company.median_salary)}
+                      </td>
+                      <td className="px-3 py-4 text-right">
+                        {salarySpread(company) || '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+        </div>
       )}
     </div>
   );
 }
 
-export function FollowUpsPage() {
+function CompanyMetric({ label, value, detail = null }) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="mt-2 text-2xl font-bold">{value}</p>
+      {detail && (
+        <p className="mt-1 truncate text-xs text-muted-foreground">{detail}</p>
+      )}
+    </div>
+  );
+}
+
+function salarySpread(company) {
+  if (company.mean_salary == null || company.median_salary == null) {
+    return null;
+  }
+  const spread = Number(company.mean_salary) - Number(company.median_salary);
+  return `${spread >= 0 ? '+' : ''}£${Math.round(spread).toLocaleString()}`;
+}
+
+export function FollowUpsPage({ reminderWindow }) {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -103,8 +157,14 @@ export function FollowUpsPage() {
   }, []);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const reminderEnd = new Date(today);
+  reminderEnd.setDate(today.getDate() + Number(reminderWindow || 3));
   const followUps = applications
     .filter((job) => job.follow_up_at)
+    .filter((job) => {
+      const followUpDate = new Date(job.follow_up_at);
+      return followUpDate < today || followUpDate <= reminderEnd;
+    })
     .sort(
       (a, b) =>
         new Date(a.follow_up_at).getTime() - new Date(b.follow_up_at).getTime()
@@ -320,7 +380,14 @@ export function DataHealthPage() {
   );
 }
 
-export function SettingsPage({ settings, updateSettings }) {
+export function SettingsPage({
+  settings,
+  updateSettings,
+  profile,
+  onProfileSave,
+}) {
+  const [profileDraft, setProfileDraft] = useState(profile);
+  const [profileSaved, setProfileSaved] = useState(false);
   const fields: Array<[string, string, string[]]> = [
     ['defaultPageSize', 'Default jobs per page', ['10', '25', '50', '100']],
     [
@@ -329,6 +396,19 @@ export function SettingsPage({ settings, updateSettings }) {
       ['created_desc', 'salary_desc', 'title_asc', 'company_asc'],
     ],
   ];
+
+  const profileFields = [
+    ['target_titles', 'Target roles', 'e.g. Data Analyst, Python Developer'],
+    ['preferred_locations', 'Preferred locations', 'e.g. London, Manchester'],
+    ['preferred_categories', 'Preferred categories', 'e.g. IT jobs, Software'],
+    ['preferred_contract_types', 'Contract types', 'e.g. permanent, contract'],
+  ];
+
+  function saveProfile(event) {
+    event.preventDefault();
+    onProfileSave({ ...profileDraft });
+    setProfileSaved(true);
+  }
   return (
     <div>
       <PageIntro
@@ -337,6 +417,48 @@ export function SettingsPage({ settings, updateSettings }) {
         description="Tune the workspace for the way you search, compare, and follow up on jobs."
       />
       <div className="space-y-6">
+        <Panel>
+          <form onSubmit={saveProfile}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold">Job profile</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  These preferences power Recommended Jobs and job match scores.
+                </p>
+              </div>
+              <button
+                type="submit"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+              >
+                Save profile
+              </button>
+            </div>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {profileFields.map(([name, label, placeholder]) => (
+                <label key={name} className="text-sm font-medium">
+                  {label}
+                  <input
+                    value={profileDraft[name] || ''}
+                    onChange={(event) => {
+                      setProfileSaved(false);
+                      setProfileDraft((current) => ({
+                        ...current,
+                        [name]: event.target.value,
+                      }));
+                    }}
+                    placeholder={placeholder}
+                    className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal outline-none focus:border-primary"
+                  />
+                </label>
+              ))}
+            </div>
+            {profileSaved && (
+              <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400">
+                Job profile saved and synced with Recommended Jobs.
+              </p>
+            )}
+          </form>
+        </Panel>
         <Panel>
           <h2 className="text-lg font-semibold">Job explorer defaults</h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -400,14 +522,14 @@ export function SettingsPage({ settings, updateSettings }) {
         </Panel>
         <Panel>
           <h2 className="text-lg font-semibold">Follow-up reminders</h2>
-          <label className="mt-5 block text-sm font-medium">
+          <label className="mt-5  block text-sm font-medium">
             Reminder window
             <select
               value={settings.reminderWindow}
               onChange={(event) =>
                 updateSettings('reminderWindow', event.target.value)
               }
-              className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 sm:max-w-sm"
+              className="mt-2 ml-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 sm:max-w-sm"
             >
               <option value="0">Due today</option>
               <option value="3">Next 3 days</option>

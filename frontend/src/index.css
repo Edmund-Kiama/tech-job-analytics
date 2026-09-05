@@ -86,6 +86,8 @@
 html {
   background: var(--background);
   color: var(--foreground);
+  scrollbar-color: var(--primary) var(--background);
+  scrollbar-width: thin;
 }
 
 body {
@@ -98,6 +100,30 @@ body {
     -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue',
     sans-serif;
   letter-spacing: 0;
+}
+
+* {
+  scrollbar-color: var(--primary) var(--background);
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 3px solid var(--background);
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--ring);
 }
 
 button,
@@ -141,6 +167,14 @@ th,
 
 .recharts-bar-rectangle path {
   fill: var(--primary);
+}
+
+.recharts-bar-rectangle path[fill='#0f766e'] {
+  fill: #0f766e;
+}
+
+.recharts-bar-rectangle path[fill='#e07a3f'] {
+  fill: #e07a3f;
 }
 
 .recharts-line path {

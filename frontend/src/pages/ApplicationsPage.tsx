@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { FiExternalLink } from 'react-icons/fi';
 import { getApplications } from '../api';
 import Loader from '../components/Loader';
 
@@ -29,6 +30,7 @@ function formatDate(value) {
 
 function statusClass(status) {
   const classes = {
+    NEW: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500/20',
     SAVED: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
     APPLIED: 'bg-purple-500/10 text-purple-700 dark:text-purple-300',
     INTERVIEW: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
@@ -54,6 +56,16 @@ function priorityLabel(priority) {
   }
 
   return '—';
+}
+
+function priorityClass(priority) {
+  return (
+    {
+      1: 'bg-sky-500/15 text-sky-700 dark:text-sky-300 ring-1 ring-sky-500/20',
+      2: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20',
+      3: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 ring-1 ring-rose-500/20',
+    }[priority] || 'bg-muted text-muted-foreground'
+  );
 }
 
 export default function ApplicationsPage() {
@@ -172,7 +184,9 @@ export default function ApplicationsPage() {
                 </span>
 
                 {job.user_priority && (
-                  <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium">
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-medium ${priorityClass(job.user_priority)}`}
+                  >
                     {priorityLabel(job.user_priority)}
                   </span>
                 )}
@@ -217,7 +231,11 @@ export default function ApplicationsPage() {
                   rel="noreferrer"
                   className="text-sm font-medium text-primary hover:underline"
                 >
-                  Open application →
+                  View job advert{' '}
+                  <FiExternalLink
+                    className="ml-1 inline-block"
+                    aria-hidden="true"
+                  />
                 </a>
               </div>
             )}

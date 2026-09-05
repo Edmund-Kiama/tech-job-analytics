@@ -33,6 +33,7 @@ export default function ApplicationTracker({ job, onUpdated }) {
   const [error, setError] = useState(null);
   const [notes, setNotes] = useState('');
   const [followUp, setFollowUp] = useState('');
+  const [savedMessage, setSavedMessage] = useState('');
 
   useEffect(() => {
     async function loadApplication() {
@@ -64,6 +65,7 @@ export default function ApplicationTracker({ job, onUpdated }) {
     try {
       setSaving(true);
       setError(null);
+      setSavedMessage('');
 
       const updated = await updateJobApplication(job.id, updates);
 
@@ -97,15 +99,23 @@ export default function ApplicationTracker({ job, onUpdated }) {
   }
 
   async function saveNotes() {
-    await updateApplication({
-      application_notes: notes,
-    });
+    await updateApplication({ application_notes: notes });
+    setSavedMessage('Notes saved.');
   }
 
   async function saveFollowUp() {
     await updateApplication({
       follow_up_at: followUp ? `${followUp}T09:00:00` : null,
     });
+    setSavedMessage('Follow-up date saved.');
+  }
+
+  async function saveTracker() {
+    await updateApplication({
+      application_notes: notes,
+      follow_up_at: followUp ? `${followUp}T09:00:00` : null,
+    });
+    setSavedMessage('Application tracker saved.');
   }
 
   if (loading) {
@@ -133,6 +143,12 @@ export default function ApplicationTracker({ job, onUpdated }) {
       {error && (
         <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
+        </div>
+      )}
+
+      {savedMessage && (
+        <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+          {savedMessage}
         </div>
       )}
 
@@ -232,6 +248,21 @@ export default function ApplicationTracker({ job, onUpdated }) {
           className="mt-2 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
         >
           Save notes
+        </button>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
+        <p className="text-xs text-muted-foreground">
+          Status and priority save immediately. Save the date and notes here
+          together.
+        </p>
+        <button
+          type="button"
+          onClick={saveTracker}
+          disabled={saving}
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+        >
+          {saving ? 'Saving...' : 'Save application tracker'}
         </button>
       </div>
     </section>

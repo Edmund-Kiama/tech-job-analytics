@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { FiArrowLeft } from 'react-icons/fi';
 import { getJob, getJobPrioritization } from '../api';
 import ApplicationTracker from '../components/ApplicationTracker';
 import JobApplicationActions from '../components/JobApplicationActions';
@@ -153,7 +154,7 @@ function BackButton({ onBack }) {
       onClick={onBack}
       className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
     >
-      <span aria-hidden="true">←</span> Back to job explorer
+      <FiArrowLeft aria-hidden="true" /> Back to job explorer
     </button>
   );
 }

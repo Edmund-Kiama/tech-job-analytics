@@ -11,14 +11,6 @@ const PROFILE_FIELDS = [
   ['preferred_contract_types', 'Contract types', 'e.g. permanent, contract'],
 ];
 
-function readProfile() {
-  try {
-    return JSON.parse(localStorage.getItem('job-profile') || '{}');
-  } catch {
-    return {};
-  }
-}
-
 function money(value) {
   return value == null
     ? 'Salary not listed'
@@ -41,8 +33,12 @@ function priorityClass(priority) {
       : 'bg-muted text-muted-foreground';
 }
 
-export default function RecommendedJobsPage({ onOpenJob }) {
-  const [profile, setProfile] = useState(readProfile);
+export default function RecommendedJobsPage({
+  profile,
+  onProfileSave,
+  onOpenJob,
+}) {
+  const [draftProfile, setDraftProfile] = useState(profile);
   const [jobs, setJobs] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -71,13 +67,12 @@ export default function RecommendedJobsPage({ onOpenJob }) {
   }, [profile]);
 
   function updateProfile(name, value) {
-    setProfile((current) => ({ ...current, [name]: value }));
+    setDraftProfile((current) => ({ ...current, [name]: value }));
   }
 
   function saveProfile(event) {
     event.preventDefault();
-    localStorage.setItem('job-profile', JSON.stringify(profile));
-    setProfile({ ...profile });
+    onProfileSave({ ...draftProfile });
   }
 
   return (
@@ -108,7 +103,7 @@ export default function RecommendedJobsPage({ onOpenJob }) {
               <label key={name} className="text-sm font-medium">
                 {label}
                 <input
-                  value={profile[name] || ''}
+                  value={draftProfile[name] || ''}
                   onChange={(event) => updateProfile(name, event.target.value)}
                   placeholder={placeholder}
                   className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal outline-none focus:border-primary"

@@ -1,4 +1,8 @@
-import type { ApplicationUpdate, JobFilters } from './typings/api-typings';
+import type {
+  ApplicationUpdate,
+  JobFilters,
+  PrioritizationProfile,
+} from './typings/api-typings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -104,6 +108,10 @@ export async function getJobs(filters: Partial<JobFilters> = {}) {
     params.set('salary_is_predicted', filters.salary_predicted);
   }
 
+  if (filters.is_active) {
+    params.set('is_active', filters.is_active);
+  }
+
   if (filters.sort) {
     params.set('sort', filters.sort);
   }
@@ -133,6 +141,65 @@ export async function getAnalyticsTrends() {
 
 export async function getAnalyticsSummary() {
   return fetchApi('/analytics/summary');
+}
+
+export async function getPrioritizedJobs(
+  profile: PrioritizationProfile = {},
+  page = 1,
+  pageSize = 20
+) {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+
+  Object.entries(profile).forEach(([key, value]) => {
+    if (value) {
+      params.set(key, value);
+    }
+  });
+
+  return fetchApi(`/analytics/prioritization?${params.toString()}`);
+}
+
+export async function getJobPrioritization(
+  jobId: string,
+  profile: PrioritizationProfile = {}
+) {
+  const params = new URLSearchParams();
+
+  Object.entries(profile).forEach(([key, value]) => {
+    if (value) {
+      params.set(key, value);
+    }
+  });
+
+  const query = params.toString();
+  return fetchApi(
+    query
+      ? `/analytics/prioritization/${encodeURIComponent(jobId)}?${query}`
+      : `/analytics/prioritization/${encodeURIComponent(jobId)}`
+  );
+}
+
+export async function getCategories() {
+  return fetchApi('/analytics/categories');
+}
+
+export async function getCategoryAnalytics(category) {
+  return fetchApi(`/analytics/categories/${encodeURIComponent(category)}`);
+}
+
+export async function getHealth() {
+  return fetchApi('/health');
+}
+
+export async function getIngestionStatus() {
+  return fetchApi('/ingestion/status');
+}
+
+export async function getIngestionRuns(page = 1, pageSize = 10) {
+  return fetchApi(`/ingestion/runs?page=${page}&page_size=${pageSize}`);
 }
 
 export async function getJobApplication(jobId: string) {

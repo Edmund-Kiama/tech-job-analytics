@@ -2,11 +2,17 @@ import { useState } from 'react';
 
 const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard', icon: '▦' },
+  { path: '/recommended', label: 'Recommended jobs', icon: '★' },
+  { path: '/jobs', label: 'Job explorer', icon: '⌕' },
+  { path: '/applications', label: 'Applications', icon: '✓' },
+  { path: '/follow-ups', label: 'Follow-ups', icon: '◷' },
+  { path: '/categories', label: 'Categories', icon: '▤' },
+  { path: '/companies', label: 'Companies', icon: '▥' },
   { path: '/analytics/salary', label: 'Salary analytics', icon: '£' },
   { path: '/analytics/market', label: 'Market analysis', icon: '◫' },
   { path: '/analytics/trends', label: 'Market activity', icon: '↗' },
-  { path: '/jobs', label: 'Job explorer', icon: '⌕' },
-  { path: '/applications', label: 'Application tracker', icon: '✓' },
+  { path: '/data-health', label: 'Data health', icon: '◉' },
+  { path: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
 export default function AppLayout({

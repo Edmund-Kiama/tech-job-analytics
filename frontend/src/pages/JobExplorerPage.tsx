@@ -5,7 +5,7 @@ import PageIntro from '../components/PageIntro';
 
 const DEFAULT_PAGE_SIZE =
   parseInt(import.meta.env.VITE_DEFAULT_PAGE_SIZE, 10) || 25;
-const initialFilters = {
+const baseFilters = {
   search: '',
   category: '',
   location: '',
@@ -14,14 +14,31 @@ const initialFilters = {
   min_salary: '',
   max_salary: '',
   salary_predicted: '',
+  is_active: 'true',
   sort: 'created_desc',
   page: 1,
   page_size: DEFAULT_PAGE_SIZE,
 };
 
+function getInitialFilters() {
+  try {
+    const settings = JSON.parse(
+      localStorage.getItem('workspace-settings') || '{}'
+    );
+    return {
+      ...baseFilters,
+      page_size: Number(settings.defaultPageSize) || DEFAULT_PAGE_SIZE,
+      sort: settings.defaultSort || baseFilters.sort,
+      salary_predicted: settings.showPredicted === false ? 'false' : '',
+    };
+  } catch {
+    return baseFilters;
+  }
+}
+
 export default function JobExplorerPage({ onOpenJob }) {
   const [filters, setFilters] = useState(() => ({
-    ...initialFilters,
+    ...getInitialFilters(),
     ...readFilters(),
   }));
   const [result, setResult] = useState({
@@ -55,12 +72,12 @@ export default function JobExplorerPage({ onOpenJob }) {
   }, [filters]);
   const updateFilter = (name, value) =>
     setFilters((current) => ({ ...current, [name]: value, page: 1 }));
-  const clear = () => setFilters({ ...initialFilters });
+  const clear = () => setFilters({ ...getInitialFilters() });
   const hasFilters =
     Object.entries(filters).some(
       ([key, value]) =>
         key !== 'page' && key !== 'page_size' && key !== 'sort' && value
-    ) || filters.sort !== 'created_desc';
+    ) || filters.sort !== getInitialFilters().sort;
 
   return (
     <div>
@@ -192,6 +209,11 @@ function FilterPanel({ filters, onChange, onClear, hasFilters }) {
           ['true', 'Predicted salary'],
           ['false', 'Non-predicted salary'],
         ])}
+        {select('Listing status', 'is_active', [
+          ['true', 'Active jobs'],
+          ['', 'All listings'],
+          ['false', 'Inactive jobs'],
+        ])}
         <Field
           label="Minimum salary"
           name="min_salary"
@@ -215,6 +237,8 @@ function FilterPanel({ filters, onChange, onClear, hasFilters }) {
           ['salary_asc', 'Lowest salary'],
           ['title_asc', 'Title A-Z'],
           ['title_desc', 'Title Z-A'],
+          ['company_asc', 'Company A-Z'],
+          ['company_desc', 'Company Z-A'],
         ])}
       </div>
       {hasFilters && (
@@ -358,7 +382,7 @@ function salary(job) {
 function readFilters() {
   const params = new URLSearchParams(window.location.search);
   return Object.fromEntries(
-    Object.keys(initialFilters)
+    Object.keys(baseFilters)
       .filter((key) => params.has(key))
       .map((key) => [
         key,
@@ -373,7 +397,7 @@ function updateUrl(filters) {
   Object.entries(filters).forEach(([key, value]) => {
     if (
       value &&
-      value !== initialFilters[key] &&
+      value !== getInitialFilters()[key] &&
       key !== 'page' &&
       key !== 'page_size'
     )

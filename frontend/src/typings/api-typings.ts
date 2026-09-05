@@ -39,6 +39,7 @@ export interface JobFilters {
   sort: string;
   page: number;
   page_size: number;
+  is_active: string;
 }
 
 export interface Pagination {
@@ -51,6 +52,73 @@ export interface Pagination {
 export interface JobsResponse {
   items: Job[];
   pagination: Pagination;
+}
+
+export interface PrioritizationProfile {
+  target_titles?: string;
+  preferred_categories?: string;
+  preferred_locations?: string;
+  preferred_contract_types?: string;
+}
+
+export interface PrioritizationFactor {
+  score: number;
+  points: number;
+  weight: number;
+  reason: string;
+}
+
+export interface PrioritizedJob extends Job {
+  salary?: number | null;
+  priority_score: number;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  rank: number;
+  factors?: Record<string, PrioritizationFactor>;
+  explanation?: string[];
+}
+
+export interface PrioritizedJobsResponse {
+  page: number;
+  page_size: number;
+  total: number;
+  jobs: PrioritizedJob[];
+}
+
+export interface CategoryAnalyticsResponse {
+  category: string;
+  job_count: number;
+  salary: {
+    mean: number | null;
+    median: number | null;
+    minimum: number | null;
+    maximum: number | null;
+  };
+  top_jobs: Array<{
+    rank: number;
+    id: string;
+    title: string;
+    company_name?: string | null;
+    location_name?: string | null;
+    salary?: number | null;
+    salary_min?: number | null;
+    salary_max?: number | null;
+    salary_is_predicted?: boolean | null;
+    redirect_url?: string | null;
+  }>;
+}
+
+export interface IngestionStatus {
+  status: string;
+  last_run?: string | null;
+  completed_at?: string | null;
+  rows_fetched?: number | null;
+  rows_before_cleaning?: number | null;
+  rows_after_cleaning?: number | null;
+  jobs_inserted?: number | null;
+  jobs_updated?: number | null;
+  jobs_inactivated?: number | null;
+  error_message?: string | null;
+  jobs: { total: number; active: number; inactive: number };
 }
 
 export interface ApplicationUpdate {

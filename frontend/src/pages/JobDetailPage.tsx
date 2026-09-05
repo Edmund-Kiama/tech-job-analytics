@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { getJob } from '../api';
+import { getJob, getJobPrioritization } from '../api';
 import ApplicationTracker from '../components/ApplicationTracker';
 import JobApplicationActions from '../components/JobApplicationActions';
 import Loader from '../components/Loader';
 
 export default function JobDetailPage({ jobId, onBack }) {
   const [job, setJob] = useState(null);
+  const [prioritization, setPrioritization] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -16,6 +17,20 @@ export default function JobDetailPage({ jobId, onBack }) {
       })
       .catch((loadError) => {
         if (!cancelled) setError(loadError.message);
+      });
+    const profile = (() => {
+      try {
+        return JSON.parse(localStorage.getItem('job-profile') || '{}');
+      } catch {
+        return {};
+      }
+    })();
+    getJobPrioritization(jobId, profile)
+      .then((data) => {
+        if (!cancelled) setPrioritization(data);
+      })
+      .catch(() => {
+        if (!cancelled) setPrioritization(null);
       });
     return () => {
       cancelled = true;
@@ -74,6 +89,32 @@ export default function JobDetailPage({ jobId, onBack }) {
               {job.description || 'No description available.'}
             </div>
           </section>
+          {prioritization && (
+            <section className="rounded-xl border border-border bg-card p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                    Personal fit
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold">Match score</h2>
+                </div>
+                <p className="text-3xl font-bold text-primary">
+                  {Math.round(prioritization.priority_score)}
+                </p>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {prioritization.priority} priority based on your saved job
+                profile and listing quality.
+              </p>
+              <ul className="mt-5 space-y-2 text-sm text-muted-foreground">
+                {(prioritization.explanation || [])
+                  .slice(0, 5)
+                  .map((reason) => (
+                    <li key={reason}>· {reason}</li>
+                  ))}
+              </ul>
+            </section>
+          )}
           <section className="rounded-xl border border-border bg-card p-6">
             <h2 className="text-xl font-semibold">Listing details</h2>
             <div className="mt-5 grid gap-5 sm:grid-cols-2">

@@ -16,6 +16,7 @@ import {
   getAnalyticsBreakdown,
   getAnalyticsSummary,
   getSalaryAnalytics,
+  getAnalyticsTrends,
 } from '../../api';
 import PageIntro from '../PageIntro';
 import Loader from '../Loader';
@@ -33,14 +34,16 @@ export default function DashboardPage() {
       getSalaryAnalytics(),
       getAnalyticsSummary(),
       getAnalyticsBreakdown(),
+      getAnalyticsTrends(),
     ])
-      .then(([salary, summary, breakdown]) => {
+      .then(([salary, summary, breakdown, trends]) => {
         if (cancelled) return;
 
         setAnalytics({
           salary,
           summary,
           breakdown,
+          trends,
         });
         setLoading(false);
       })
@@ -111,6 +114,11 @@ function DashboardContent({ analytics }) {
           label="Median salary"
           value={money(summary.median_salary, true)}
         />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-2">
+        <MarketSnapshot data={analytics.trends?.daily || []} />
+        <CompanySnapshot companies={breakdown.top_companies || []} />
       </section>
 
       <Panel>
@@ -367,6 +375,12 @@ export function SalaryStatistics({ salary }) {
         <p className="mt-1 text-sm font-medium">
           2σ: {money(salary.standard_deviation_ranges.lower_2_std, true)} –{' '}
           {money(salary.standard_deviation_ranges.upper_2_std, true)}
+        </p>
+
+        <p className="mt-3 text-xs text-muted-foreground">
+          Observed range: {money(salary.distribution.minimum, true)} –{' '}
+          {money(salary.distribution.maximum, true)} · standard deviation{' '}
+          {money(salary.distribution.standard_deviation, true)}
         </p>
       </div>
     </Panel>
@@ -865,6 +879,66 @@ export function MarketTrends({ data }) {
             />
           </LineChart>
         </ResponsiveContainer>
+      </div>
+    </Panel>
+  );
+}
+
+function MarketSnapshot({ data }) {
+  const latest = data[data.length - 1];
+  return (
+    <Panel>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Recent market activity</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Latest observed movement in the active listings dataset.
+          </p>
+        </div>
+        <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium">
+          {latest?.date || 'No data'}
+        </span>
+      </div>
+      {latest ? (
+        <div className="mt-6 grid grid-cols-3 gap-3">
+          <Stat label="Added" value={latest.jobs_added} />
+          <Stat label="Inactivated" value={latest.jobs_inactivated} />
+          <Stat label="Active" value={latest.active_jobs} />
+        </div>
+      ) : (
+        <p className="mt-6 text-sm text-muted-foreground">
+          No activity data is available yet.
+        </p>
+      )}
+    </Panel>
+  );
+}
+
+function CompanySnapshot({ companies }) {
+  return (
+    <Panel>
+      <h2 className="text-lg font-semibold">Leading employers</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Companies with the most listings in the current dataset.
+      </p>
+      <div className="mt-5 space-y-3">
+        {companies.slice(0, 5).map((company, index) => (
+          <div
+            key={company.company || company.company_name || index}
+            className="flex items-center justify-between gap-4 text-sm"
+          >
+            <span className="truncate">
+              <span className="mr-3 text-muted-foreground">{index + 1}</span>
+              {company.company || company.company_name || 'Unknown company'}
+            </span>
+            <strong>{company.job_count ?? company.count ?? '—'}</strong>
+          </div>
+        ))}
+        {!companies.length && (
+          <p className="text-sm text-muted-foreground">
+            No company breakdown is available.
+          </p>
+        )}
       </div>
     </Panel>
   );

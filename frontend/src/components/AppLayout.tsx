@@ -24,7 +24,7 @@ export default function AppLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="app-shell min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur lg:hidden">
         <div className="flex h-16 items-center justify-between px-4">
           <Brand />
@@ -71,10 +71,10 @@ export default function AppLayout({
 function Brand() {
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
         UK job analytics
       </p>
-      <p className="mt-2 text-lg font-bold tracking-tight">
+      <p className="mt-2 text-lg font-semibold leading-tight tracking-[-0.02em]">
         Career command center
       </p>
     </div>
@@ -91,7 +91,7 @@ function Navigation({ activePath, onNavigate }) {
             key={item.path}
             type="button"
             onClick={() => onNavigate(item.path)}
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium transition ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+            className={`nav-item flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium transition ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
           >
             <span
               className="grid h-7 w-7 place-items-center rounded-md border border-current/20 text-base"

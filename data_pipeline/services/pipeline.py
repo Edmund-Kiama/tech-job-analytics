@@ -5,13 +5,18 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import desc, select
+from sqlalchemy import desc, inspect, select
 from sqlalchemy.orm import Session
 
 from data_pipeline.clients.adzuna import AdzunaClient
 from data_pipeline.config import settings
-from data_pipeline.database.connection import SessionLocal
-from data_pipeline.database.models import IngestionRun, Listing, ListingHistory
+from data_pipeline.database.connection import SessionLocal, engine
+from data_pipeline.database.models import (
+    Base,  # Adjust import to your Base class location
+    IngestionRun,
+    Listing,
+    ListingHistory,
+)
 from data_pipeline.database.scheduler.job_lifecycle import (
     mark_stale_listings,
 )
@@ -28,7 +33,16 @@ logger = logging.getLogger(__name__)
 
 
 def check_and_run_startup_pipeline():
-    # Checks the database for the last ingestion run and triggers it if
+    # 1. Ensure database tables exist (handles fresh initial deployments)
+    inspector = inspect(engine)
+    existing_tables = inspector.get_table_names()
+
+    if not existing_tables or "ingestion_runs" not in existing_tables:
+        logger.info("No database tables found. Creating initial schema...")
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database schema created successfully.")
+
+    # 2. Checks the database for the last ingestion run and triggers it if
     # > 24h have passed since the last run.
     with SessionLocal() as session:
         # Get the most recent ingestion run ordered by start time

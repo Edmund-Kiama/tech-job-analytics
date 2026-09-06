@@ -11,10 +11,10 @@ from data_pipeline.clients.adzuna import AdzunaClient
 from data_pipeline.config import settings
 from data_pipeline.database.connection import SessionLocal
 from data_pipeline.database.models import IngestionRun, Listing, ListingHistory
-from data_pipeline.database.scheduler import logger
 from data_pipeline.database.scheduler.job_lifecycle import (
     mark_stale_listings,
 )
+from data_pipeline.database.scheduler.main_scheduler import logger
 from data_pipeline.processing.statistics import (
     build_salary_insight_record,
     calculate_salary_statistics,

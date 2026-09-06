@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getJobs } from '../api';
 import Loader from '../components/Loader';
 import PageIntro from '../components/PageIntro';
@@ -37,6 +38,7 @@ function getInitialFilters() {
 }
 
 export default function JobExplorerPage({ onOpenJob }) {
+  const routerNavigate = useNavigate();
   const [filters, setFilters] = useState(() => ({
     ...getInitialFilters(),
     ...readFilters(),
@@ -54,7 +56,7 @@ export default function JobExplorerPage({ onOpenJob }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    updateUrl(filters);
+    updateUrl(filters, routerNavigate);
     let cancelled = false;
     getJobs(filters)
       .then((response) => {
@@ -69,7 +71,7 @@ export default function JobExplorerPage({ onOpenJob }) {
     return () => {
       cancelled = true;
     };
-  }, [filters]);
+  }, [filters, routerNavigate]);
   const updateFilter = (name, value) =>
     setFilters((current) => ({ ...current, [name]: value, page: 1 }));
   const clear = () => setFilters({ ...getInitialFilters() });
@@ -392,7 +394,7 @@ function readFilters() {
       ])
   );
 }
-function updateUrl(filters) {
+function updateUrl(filters, navigate) {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
     if (
@@ -406,9 +408,11 @@ function updateUrl(filters) {
   if (filters.page > 1) params.set('page', filters.page);
   if (filters.page_size !== DEFAULT_PAGE_SIZE)
     params.set('page_size', filters.page_size);
-  window.history.replaceState(
-    {},
-    '',
-    params.toString() ? `/jobs?${params}` : '/jobs'
+  navigate(
+    {
+      pathname: '/jobs',
+      search: params.toString() ? `?${params}` : '',
+    },
+    { replace: true }
   );
 }

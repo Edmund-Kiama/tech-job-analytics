@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   FiBarChart2,
   FiBriefcase,
@@ -150,11 +151,11 @@ function Navigation({ activePath, onNavigate }) {
             {section.items.map((item) => {
               const active = activePath === item.path;
               return (
-                <button
+                <Link
                   key={item.path}
-                  type="button"
-                  onClick={() => onNavigate(item.path)}
-                  className={`nav-item flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-medium transition ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+                  to={item.path}
+                  onClick={() => onNavigate?.(item.path)}
+                  className={`nav-item flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm font-medium transition ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
                 >
                   <item.icon aria-hidden="true" />
                   {/* <span
@@ -163,7 +164,7 @@ function Navigation({ activePath, onNavigate }) {
                   >
                   </span> */}
                   {item.label}
-                </button>
+                </Link>
               );
             })}
           </div>

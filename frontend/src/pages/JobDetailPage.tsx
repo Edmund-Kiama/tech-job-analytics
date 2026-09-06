@@ -154,7 +154,7 @@ function BackButton({ onBack }) {
       onClick={onBack}
       className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
     >
-      <FiArrowLeft aria-hidden="true" /> Back to job explorer
+      <FiArrowLeft aria-hidden="true" /> Back
     </button>
   );
 }

@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#194896" />
+      <stop offset="100%" stop-color="#0b2351" />
+    </linearGradient>
+
+    <!-- Arrow/Curve Gradient -->
+    <linearGradient id="arrowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00c896" />
+      <stop offset="100%" stop-color="#2de2c2" />
+    </linearGradient>
+
+    <!-- Bar Gradients -->
+    <linearGradient id="barGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2296f3" />
+      <stop offset="100%" stop-color="#0d52cd" />
+    </linearGradient>
+  </defs>
+
+  <!-- App Icon Background -->
+  <rect width="512" height="512" rx="115" fill="url(#bgGrad)" />
+
+  <!-- Bar Chart Background Elements -->
+  <g id="bars" fill="url(#barGrad)">
+    <rect x="132" y="380" width="48" height="60" rx="12" />
+    <rect x="204" y="356" width="48" height="84" rx="12" />
+    <rect x="276" y="332" width="48" height="108" rx="12" />
+    <rect x="348" y="308" width="48" height="132" rx="12" />
+  </g>
+
+  <!-- Briefcase Shadow / Base Shape (White) -->
+  <g id="briefcase">
+    <!-- Main Body -->
+    <path d="M 132 196 
+             C 132 176, 148 160, 168 160 
+             L 344 160 
+             C 364 160, 380 176, 380 196 
+             L 380 300 
+             C 380 320, 364 336, 344 336 
+             L 168 336 
+             C 148 336, 132 320, 132 300 Z" 
+          fill="#ffffff" />
+
+    <!-- Handle -->
+    <path d="M 212 160 
+             L 212 124 
+             C 212 108, 225 96, 241 96 
+             L 271 96 
+             C 287 96, 300 108, 300 124 
+             L 300 160 Z" 
+          fill="none" 
+          stroke="#ffffff" 
+          stroke-width="24" 
+          stroke-linejoin="round" />
+
+    <!-- Flap Overlay (Dark Blue cut-out / line effect) -->
+    <path d="M 132 196 
+             L 256 250 
+             L 380 196 
+             L 380 300 
+             C 380 320, 364 336, 344 336 
+             L 168 336 
+             C 148 336, 132 320, 132 300 Z" 
+          fill="#0f3475" />
+
+    <!-- Center Latch / Buckle Base (Dark Blue) -->
+    <rect x="216" y="218" width="80" height="72" rx="16" fill="#0f3475" />
+    
+    <!-- Center Latch Inner (White border/shape) -->
+    <rect x="232" y="234" width="48" height="40" rx="8" fill="#ffffff" />
+    
+    <!-- Center Latch Core (Dark Blue) -->
+    <rect x="244" y="246" width="24" height="16" rx="4" fill="#0f3475" />
+  </g>
+
+  <!-- Growth Arrow Curve -->
+  <path d="M 132 376 
+           C 180 376, 240 330, 312 280 
+           C 340 260, 370 236, 396 212" 
+        fill="none" 
+        stroke="url(#arrowGrad)" 
+        stroke-width="20" 
+        stroke-linecap="round" />
+
+  <!-- Arrow Head -->
+  <g fill="url(#arrowGrad)">
+    <polygon points="380,184 440,212 404,258" />
+  </g>
+</svg>

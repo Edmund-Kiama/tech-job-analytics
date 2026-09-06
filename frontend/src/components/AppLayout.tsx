@@ -158,11 +158,6 @@ function Navigation({ activePath, onNavigate }) {
                   className={`nav-item flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm font-medium transition ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
                 >
                   <item.icon aria-hidden="true" />
-                  {/* <span
-                    className="grid h-6 w-6 place-items-center rounded-md border border-current/20 text-sm"
-                    aria-hidden="true"
-                  >
-                  </span> */}
                   {item.label}
                 </Link>
               );

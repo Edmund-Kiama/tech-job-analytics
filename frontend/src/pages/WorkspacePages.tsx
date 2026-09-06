@@ -72,7 +72,7 @@ export function CompaniesPage() {
               spread shows how far the typical mean sits above or below the
               median.
             </p>
-            <div className="overflow-x-auto">
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-155 text-left text-sm">
                 <thead className="border-b border-border">
                   <tr>
@@ -117,6 +117,51 @@ export function CompaniesPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="space-y-3 md:hidden">
+              {companies.map((company, index) => (
+                <article
+                  key={company.company || index}
+                  className="rounded-lg border border-border p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 font-semibold">
+                      {company.company ||
+                        company.company_name ||
+                        'Unknown company'}
+                    </p>
+                    <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
+                      {company.job_count ?? company.count ?? '—'} jobs
+                    </span>
+                  </div>
+                  <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <dt className="text-xs text-muted-foreground">
+                        Mean salary
+                      </dt>
+                      <dd className="mt-1 font-medium">
+                        {money(company.mean_salary)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">
+                        Median salary
+                      </dt>
+                      <dd className="mt-1 font-medium">
+                        {money(company.median_salary)}
+                      </dd>
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="text-xs text-muted-foreground">
+                        Mean vs median
+                      </dt>
+                      <dd className="mt-1 font-medium">
+                        {salarySpread(company) || '—'}
+                      </dd>
+                    </div>
+                  </dl>
+                </article>
+              ))}
             </div>
           </Panel>
         </div>
@@ -333,7 +378,7 @@ export function DataHealthPage() {
           </Panel>
           <Panel>
             <h2 className="text-lg font-semibold">Ingestion history</h2>
-            <div className="mt-5 overflow-x-auto">
+            <div className="mt-5 hidden overflow-x-auto md:block">
               <table className="w-full min-w-170 text-left text-sm">
                 <thead className="border-b border-border">
                   <tr>
@@ -372,6 +417,42 @@ export function DataHealthPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="mt-5 space-y-3 md:hidden">
+              {runs.map((run) => (
+                <article
+                  key={run.id}
+                  className="rounded-lg border border-border p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium">{run.status}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {date(run.started_at)}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
+                      {run.rows_fetched ?? '—'} fetched
+                    </span>
+                  </div>
+                  <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <dt className="text-xs text-muted-foreground">
+                        Inserted
+                      </dt>
+                      <dd className="mt-1 font-medium">
+                        {run.jobs_inserted ?? '—'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Updated</dt>
+                      <dd className="mt-1 font-medium">
+                        {run.jobs_updated ?? '—'}
+                      </dd>
+                    </div>
+                  </dl>
+                </article>
+              ))}
             </div>
           </Panel>
         </div>

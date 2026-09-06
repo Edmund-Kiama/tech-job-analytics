@@ -821,7 +821,7 @@ export function TopSalaryJobs({ jobs }) {
         </span>
       </div>
 
-      <div className="mt-6 overflow-x-auto">
+      <div className="mt-6 hidden overflow-x-auto md:block">
         <table className="w-full min-w-175 text-sm">
           <thead>
             <tr className="border-b border-border text-left">
@@ -869,6 +869,29 @@ export function TopSalaryJobs({ jobs }) {
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="mt-6 space-y-3 md:hidden">
+        {jobs.map((job) => (
+          <article key={job.id} className="rounded-lg border border-border p-4">
+            <div className="flex items-start gap-3">
+              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
+                #{job.rank}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">{job.title}</p>
+                <p className="mt-1 truncate text-sm text-muted-foreground">
+                  {job.company_name || '—'}
+                </p>
+              </div>
+              <p className="shrink-0 text-right text-sm font-semibold">
+                {money(job.salary, true)}
+              </p>
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {job.location_name || '—'}
+            </p>
+          </article>
+        ))}
       </div>
     </Panel>
   );

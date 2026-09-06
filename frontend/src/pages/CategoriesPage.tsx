@@ -134,7 +134,7 @@ function CategoryContent({ data, onOpenJob }) {
             Ranked by normalized salary midpoint.
           </p>
         </div>
-        <div className="mt-5 overflow-x-auto">
+        <div className="mt-5 hidden overflow-x-auto md:block">
           <table className="w-full min-w-170 text-left text-sm">
             <thead className="border-b border-border">
               <tr>
@@ -183,6 +183,41 @@ function CategoryContent({ data, onOpenJob }) {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="mt-5 space-y-3 md:hidden">
+          {data.top_jobs.map((job) => (
+            <article
+              key={job.id}
+              className="rounded-lg border border-border p-4"
+            >
+              <div className="flex items-start gap-3">
+                <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
+                  #{job.rank}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">{job.title}</p>
+                  <p className="mt-1 truncate text-sm text-muted-foreground">
+                    {job.company_name || 'Unknown company'}
+                  </p>
+                </div>
+                <p className="shrink-0 text-right text-sm font-semibold">
+                  {salary(job)}
+                </p>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3 text-sm text-muted-foreground">
+                <span className="truncate">
+                  {job.location_name || 'Not specified'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onOpenJob(job)}
+                  className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-muted"
+                >
+                  View job
+                </button>
+              </div>
+            </article>
+          ))}
         </div>
       </Panel>
     </>

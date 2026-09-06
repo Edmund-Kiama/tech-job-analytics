@@ -6,7 +6,11 @@ load_dotenv()
 
 
 class Settings:
-    DATABASE_URL = os.getenv("DATABASE_URL")
+    _db_url = os.getenv("DATABASE_URL")
+    if _db_url and _db_url.startswith("postgres://"):
+        _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+        
+    DATABASE_URL = _db_url
     ADZUNA_APP_ID = os.getenv("ADZUNA_APP_ID")
     ADZUNA_APP_KEY = os.getenv("ADZUNA_APP_KEY")
     ADZUNA_COUNTRY = os.getenv("ADZUNA_COUNTRY", "gb")

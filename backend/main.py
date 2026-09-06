@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
@@ -11,12 +12,20 @@ from backend.api.routers.jobs import router as jobs_router
 from backend.api.routers.system import router as system_router
 from data_pipeline.config import settings
 from data_pipeline.database.scheduler.main_scheduler import start_scheduler
+from data_pipeline.services.pipeline import check_and_run_startup_pipeline
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 1. Start the background scheduler for when the app stays awake
     scheduler = start_scheduler()
+
+    # 2. Check last ingestion time on startup and run if > 24 hours have passed.
+    # We use asyncio.to_thread so the synchronous database/pipeline calls don't block startup.
+    asyncio.create_task(asyncio.to_thread(check_and_run_startup_pipeline))
+
     yield
+
     scheduler.shutdown(wait=False)
 
 

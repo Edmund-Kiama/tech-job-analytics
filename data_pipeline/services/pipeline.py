@@ -4,13 +4,14 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from data_pipeline.clients.adzuna import AdzunaClient
 from data_pipeline.config import settings
 from data_pipeline.database.connection import SessionLocal
 from data_pipeline.database.models import IngestionRun, Listing, ListingHistory
+from data_pipeline.database.scheduler import logger
 from data_pipeline.database.scheduler.job_lifecycle import (
     mark_stale_listings,
 )
@@ -22,6 +23,49 @@ from data_pipeline.processing.transform import transform_dataframe
 from data_pipeline.services.salary_insights import save_salary_insights
 from data_pipeline.storage.bronze_loader import load_bronze_json
 from data_pipeline.storage.raw import save_raw_payload
+
+
+def check_and_run_startup_pipeline():
+    # Checks the database for the last ingestion run and triggers it if
+    # > 24h have passed since the last run.
+    with SessionLocal() as session:
+        # Get the most recent ingestion run ordered by start time
+        last_run = (
+            session.execute(
+                select(IngestionRun).order_by(desc(IngestionRun.started_at))
+            )
+            .scalars()
+            .first()
+        )
+
+        should_run = False
+        if not last_run:
+            logger.info(
+                "No previous ingestion runs found. Triggering initial pipeline run..."
+            )
+            should_run = True
+        else:
+            now = datetime.now(timezone.utc)
+            # Ensure last_run.started_at is timezone-aware
+            last_run_time = last_run.started_at
+            if last_run_time.tzinfo is None:
+                last_run_time = last_run_time.replace(tzinfo=timezone.utc)
+
+            hours_elapsed = (now - last_run_time).total_seconds() / 3600
+            logger.info(f"Last ingestion run was {hours_elapsed:.2f} hours ago.")
+
+            if hours_elapsed >= 24:
+                should_run = True
+
+        if should_run:
+            try:
+                run_pipeline(
+                    max_pages=int(settings.ADZUNA_MAX_PAGES),
+                    analysis_version=settings.ADZUNA_ANALYSIS_VERSION,
+                )
+                logger.info("Startup ingestion pipeline completed successfully.")
+            except Exception as exc:
+                logger.error(f"Startup ingestion pipeline failed: {exc}", exc_info=True)
 
 
 def run_pipeline(

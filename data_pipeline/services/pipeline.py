@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -14,7 +15,6 @@ from data_pipeline.database.models import IngestionRun, Listing, ListingHistory
 from data_pipeline.database.scheduler.job_lifecycle import (
     mark_stale_listings,
 )
-from data_pipeline.database.scheduler.main_scheduler import logger
 from data_pipeline.processing.statistics import (
     build_salary_insight_record,
     calculate_salary_statistics,
@@ -23,6 +23,8 @@ from data_pipeline.processing.transform import transform_dataframe
 from data_pipeline.services.salary_insights import save_salary_insights
 from data_pipeline.storage.bronze_loader import load_bronze_json
 from data_pipeline.storage.raw import save_raw_payload
+
+logger = logging.getLogger(__name__)
 
 
 def check_and_run_startup_pipeline():

@@ -22,7 +22,7 @@ export default defineConfig({
         short_name: 'Job Analytics',
         description: 'UK job market and salary analytics dashboard',
         theme_color: '#ffffff',
-        background_color: '#ffffff',
+        background_color: '#1c1c1e',
         display: 'standalone',
         orientation: 'portrait-primary',
 

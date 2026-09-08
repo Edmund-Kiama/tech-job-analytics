@@ -2,6 +2,8 @@
 
 UKJob Analytics combines a Python data pipeline, a FastAPI backend, and a React/Vite frontend. It collects technology job listings, preserves source payloads, normalizes the data, computes salary insights, and exposes the results for interactive use.
 
+The frontend is deployed at [tech-job-analytics.vercel.app](https://tech-job-analytics.vercel.app/). This is the public UI; it still requires the separately hosted backend API to load live data.
+
 ## Start here
 
 ```mermaid
@@ -43,10 +45,11 @@ flowchart LR
 - Daily scheduled ingestion at 02:00 UTC when the backend process is running
 - FastAPI endpoints for jobs, application tracking, analytics, health, and ingestion monitoring
 - React/Vite frontend build, lint, typecheck, and development workflow
+- Public Vercel deployment of the frontend at [tech-job-analytics.vercel.app](https://tech-job-analytics.vercel.app/)
 
 ## Current maturity
 
-The pipeline and its test suite provide the project’s most established core. The backend is functional and has a documented API, but analytics response models are intentionally flexible while contracts continue to settle. The frontend is an active application layer and should be tested against the running API rather than treated as a static artifact.
+The pipeline and its test suite provide the project’s most established core. The backend is functional and has a documented API, but analytics response models are intentionally flexible while contracts continue to settle. The frontend is deployed as a public Vercel application, but it remains an API-backed application layer and should be tested against the running API rather than treated as a standalone static artifact.
 
 ## Important boundaries
 

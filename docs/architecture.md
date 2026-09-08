@@ -100,7 +100,9 @@ serializes persisted data and exposes analytics calculations over it.
 
 The frontend is a React 19 and Vite application. Its build, lint, typecheck,
 and development commands are defined in [`frontend/package.json`](../frontend/package.json).
-It is a separate process from the backend and communicates over HTTP.
+It is a separate process from the backend and communicates over HTTP. The current
+production frontend is deployed at [tech-job-analytics.vercel.app](https://tech-job-analytics.vercel.app/);
+the deployment remains dependent on a reachable backend API and database.
 
 ## Scheduler behavior
 
@@ -123,7 +125,7 @@ deployment is configured accordingly.
 - Analytics routes use a flexible response marker while their payload contracts evolve.
 - The API and scheduler share one process, which is convenient locally but needs deployment discipline when scaling horizontally.
 - Environment configuration is loaded from `.env`; secrets should not be committed.
-- Pipeline tests exist, while frontend/API integration and deployment hardening remain ongoing work.
+- Pipeline tests exist, while frontend/API integration and backend deployment hardening remain ongoing work.
 
 # Architecture
 

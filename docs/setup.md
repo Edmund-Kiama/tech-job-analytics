@@ -135,6 +135,19 @@ npm run typecheck
 npm run build
 ```
 
+## Public frontend deployment
+
+The current deployed frontend is [https://tech-job-analytics.vercel.app/](https://tech-job-analytics.vercel.app/). It is a Vercel-hosted Vite SPA and does not replace the backend or database setup described above.
+
+For a deployment that can load live data:
+
+1. Configure the Vercel project root as `frontend/`.
+2. Set `VITE_API_BASE_URL` to the public backend origin before the build, unless the API is available from the same origin.
+3. Add `https://tech-job-analytics.vercel.app` to the backend `CORS_ORIGINS` value when the API is hosted separately.
+4. Deploy with `npm run build` and verify that the frontend can reach `/health` and `/jobs`.
+
+Vite embeds `VITE_*` values during the build, so changing the API URL requires a new deployment.
+
 ## Recommended startup order
 
 ```mermaid

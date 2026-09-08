@@ -139,6 +139,12 @@ Route: `/analytics/trends` and compatibility alias `/job/analytics/trends`
 
 This is the historical market change page. It answers: "Is the market growing, shrinking, or shifting month to month?"
 
+Important lifecycle definition:
+
+- An active job is a listing that the ingestion pipeline still sees as part of the live dataset for the current market snapshot.
+- An inactive job is a listing that is no longer present in the newest ingestion run or that has not been seen within the stale threshold configured by the pipeline.
+- In other words, active means "currently live in the dataset," while inactive means "no longer considered current or available".
+
 What it shows:
 
 - A time-series line chart of job additions over time.
@@ -153,10 +159,19 @@ How it behaves:
 - This makes it easier to notice whether market activity is expanding, contracting, or plateauing.
 - The page is intentionally simpler than the salary or market pages: it explains movement in the overall dataset rather than per-role compensation or category composition.
 
+When does a job become inactive and how long before it is removed from the local database?
+
+- During every ingestion run, the pipeline first marks any job that is still present as active and refreshes its `last_seen_at` timestamp.
+- If a job is missing from the latest source data, it is marked inactive immediately.
+- The pipeline also runs a stale-listing check that marks active listings inactive when `last_seen_at` is older than the configured `ADZUNA_STALE_AFTER_DAYS` threshold.
+- In this project, the default retention window is 14 days, so a job that has not been seen for around two weeks is marked inactive.
+- The record is not deleted immediately; it is retained in the database for history and analytics, even after being marked inactive.
+
 Why it matters:
 
 - Trend analysis helps a user decide whether current opportunities are part of a large, growing market or a shrinking one.
 - It is useful when evaluating timing, market sentiment, and whether the current data volume appears stable or volatile.
+- The active/inactive distinction is a market-lifecycle signal, not an application or hiring-status signal.
 
 These three analytics views work together as a decision-making stack: salary answers pay, market answers composition, and trends answer direction of change.
 

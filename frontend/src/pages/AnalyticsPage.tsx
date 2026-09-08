@@ -73,14 +73,15 @@ export default function AnalyticsPage({ section }) {
         setData(
           section === 'salary'
             ? {
+                section,
                 salary: responses[0],
                 summary: responses[1],
                 metadata: responses[2],
                 breakdown: responses[3],
               }
             : section === 'market'
-              ? { breakdown: responses[0] }
-              : { trends: responses[0] }
+              ? { section, breakdown: responses[0] }
+              : { section, trends: responses[0] }
         );
         setLoading(false);
       })
@@ -132,7 +133,7 @@ export default function AnalyticsPage({ section }) {
           <p className="mt-1 text-sm text-muted-foreground">{error}</p>
         </Panel>
       )}
-      {data &&
+      {data?.section === section &&
         !error &&
         (section === 'salary' ? (
           <SalaryContent
@@ -144,9 +145,9 @@ export default function AnalyticsPage({ section }) {
             distributionError={distributionError}
           />
         ) : section === 'market' ? (
-          <MarketContent breakdown={data.breakdown} />
+          <MarketContent breakdown={data?.breakdown} />
         ) : (
-          <MarketTrends data={data.trends.daily || []} />
+          <MarketTrends data={data?.trends?.daily || []} />
         ))}
     </div>
   );

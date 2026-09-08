@@ -99,6 +99,9 @@ export default function AppLayout({
         {mobileOpen && (
           <nav className="border-t border-border px-3 py-3">
             <Navigation activePath={activePath} onNavigate={navigate} />
+            <div className="mt-4 border-t border-border pt-3">
+              <ThemeSwitcher theme={theme} setTheme={setTheme} />
+            </div>
           </nav>
         )}
       </header>

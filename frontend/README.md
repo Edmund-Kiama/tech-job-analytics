@@ -76,6 +76,90 @@ Additional category and company pages make it easier to compare a specific part 
 
 Salary values are supplied by the backend. A salary may be an advertised range, a midpoint-derived value, or a predicted value, so the interface should be read as an analysis of the available data rather than a guarantee of an offer.
 
+### Sidebar analytics pages explained in detail
+
+The sidebar exposes three dedicated analytics workspaces. Each one is a different lens on the same job dataset, and they are intentionally designed to answer a different decision question.
+
+#### 1) Salary analytics
+
+Route: `/analytics/salary`
+
+This is the compensation analysis page. It is built to answer: "What is the market paying, and how much salary coverage do I actually have?"
+
+What it shows:
+
+- A salary distribution histogram for all jobs, with optional filtering by category.
+- Summary statistics such as minimum, Q1, median, mean, Q3, maximum, IQR, and standard deviation.
+- Coverage metrics showing how many listings include minimum salary, maximum salary, midpoint salary, and complete salary ranges.
+- A top-paying jobs table that ranks the highest-paid listings by normalized midpoint salary.
+
+How it behaves:
+
+- On load, the page requests salary statistics, a market summary, analytics metadata, and a market breakdown.
+- It also fetches a detailed salary distribution for the selected category (or for all jobs when no category is chosen).
+- The category selector lets a user compare a single segment such as a technology field against the full market.
+- The histogram includes vertical reference lines for mean and median, so the spread can be interpreted quickly.
+- The table of high-paying jobs is useful for noticing outlier roles or unusually strong compensation bands.
+
+Why it matters:
+
+- This page is the strongest tool for comparing offers, understanding salary bands, and spotting which categories or segments sit above or below the market median.
+- It also helps explain whether the data is strong enough to rely on for compensation decisions: coverage and outlier counts show whether the salary picture is broad or sparse.
+
+#### 2) Market analysis
+
+Route: `/analytics/market`
+
+This is the market-structure page. It is designed to answer: "Where is the highest demand, and how is the market distributed across categories and employers?"
+
+What it shows:
+
+- Job counts by category, plotted as a horizontal bar chart.
+- Mean and median salary by category, allowing quick comparison between the biggest categories and their compensation levels.
+- Job counts by location and salary by location.
+- Contract-time mix (for example, permanent versus temporary or other contract arrangements).
+- Contract-type mix for the current dataset.
+- Salary prediction breakdown to show how many jobs include predicted salary values versus non-predicted values.
+
+How it behaves:
+
+- The page focuses on the backend analytics breakdown response rather than raw listing data.
+- It aggregates job counts and salary metrics by category, location, and employment shape so the user can compare market composition without reading every listing individually.
+- The visual layout separates volume and pay into different panels, which makes the difference between demand and compensation easier to interpret.
+- It is especially useful when the question is not just "what jobs pay well?" but "which segments of the market have the most jobs and where are the strongest opportunities?"
+
+Why it matters:
+
+- This page helps a user evaluate which parts of the market are crowded, which geographies are strongest, and which types of contracts dominate the dataset.
+- It is the best place to understand the overall shape of the market before narrowing down individual job matches.
+
+#### 3) Market activity
+
+Route: `/analytics/trends` and compatibility alias `/job/analytics/trends`
+
+This is the historical market change page. It answers: "Is the market growing, shrinking, or shifting month to month?"
+
+What it shows:
+
+- A time-series line chart of job additions over time.
+- A line for jobs inactivated over time.
+- A line for the active job count over time.
+- A summary panel for the latest observed date showing added, inactivated, and active jobs.
+
+How it behaves:
+
+- The page requests the trend dataset from the backend and renders a line chart keyed by date.
+- It compares change in new jobs versus removed or inactivated jobs, while also tracking the cumulative active pool.
+- This makes it easier to notice whether market activity is expanding, contracting, or plateauing.
+- The page is intentionally simpler than the salary or market pages: it explains movement in the overall dataset rather than per-role compensation or category composition.
+
+Why it matters:
+
+- Trend analysis helps a user decide whether current opportunities are part of a large, growing market or a shrinking one.
+- It is useful when evaluating timing, market sentiment, and whether the current data volume appears stable or volatile.
+
+These three analytics views work together as a decision-making stack: salary answers pay, market answers composition, and trends answer direction of change.
+
 ### Using recommendations
 
 The **Recommended** view uses a saved profile containing target titles, preferred locations, preferred categories, and preferred contract types. The backend returns a ranked list with a priority score and, where available, the factors explaining the ranking.

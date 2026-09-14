@@ -78,6 +78,7 @@ def ingestion_runs(session: Session, page: int, page_size: int) -> dict:
                 "jobs_inserted": run.jobs_inserted,
                 "jobs_updated": run.jobs_updated,
                 "jobs_inactivated": run.jobs_inactivated,
+                "jobs_deleted": run.jobs_deleted,
                 "salary_insight_id": run.salary_insight_id,
                 "bronze_path": run.bronze_path,
                 "analysis_version": run.analysis_version,

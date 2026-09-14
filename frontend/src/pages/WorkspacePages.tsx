@@ -397,6 +397,9 @@ export function DataHealthPage() {
                     <th className="px-3 py-3 text-right font-medium text-muted-foreground">
                       Updated
                     </th>
+                     <th className="px-3 py-3 text-right font-medium text-muted-foreground">
+                      Deleted
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -413,11 +416,15 @@ export function DataHealthPage() {
                       <td className="px-3 py-4 text-right">
                         {run.jobs_updated ?? '—'}
                       </td>
+                        <td className="px-3 py-4 text-right">
+                        {run.jobs_deleted ?? '—'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            
             <div className="mt-5 space-y-3 md:hidden">
               {runs.map((run) => (
                 <article
@@ -448,6 +455,12 @@ export function DataHealthPage() {
                       <dt className="text-xs text-muted-foreground">Updated</dt>
                       <dd className="mt-1 font-medium">
                         {run.jobs_updated ?? '—'}
+                      </dd>
+                    </div>
+                     <div>
+                      <dt className="text-xs text-muted-foreground">Deleted</dt>
+                      <dd className="mt-1 font-medium">
+                        {run.jobs_deleted ?? '—'}
                       </dd>
                     </div>
                   </dl>

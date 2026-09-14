@@ -374,6 +374,10 @@ export function DataHealthPage() {
                 label="Inactivated"
                 value={status?.jobs_inactivated ?? '—'}
               />
+               <Metric
+                label="Deleted"
+                value={status?.jobs_deleted ?? '—'}
+              />
             </div>
           </Panel>
           <Panel>

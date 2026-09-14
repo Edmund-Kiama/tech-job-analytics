@@ -117,8 +117,37 @@ deployment is configured accordingly.
 - Bronze payloads are written before transformation and remain available for reprocessing and debugging.
 - `Listing.id` is the identity used for synchronization and history links.
 - Successful runs update current listings and create a salary insight; failed runs remain recorded with `status="failed"` and `error_message`.
-- Missing listings are inactivated rather than deleted.
+- Missing or stale listings are inactivated first; expired listings are deleted by the retention cleanup.
+- Active listings can be reactivated when observed again before deletion.
 - API services open database sessions per operation and do not own schema migrations or ingestion scheduling.
+
+## Match scoring and personal fit
+
+The prioritization service scores each active listing from 0 to 100 and returns
+the total, a `HIGH`/`MEDIUM`/`LOW` label, factor scores, and explanations. The
+weighted factors are salary percentile (25%), title relevance (25%), category
+preference (15%), location preference (10%), contract-type preference (10%),
+salary completeness (10%), and recency (5%). Salary percentile is measured
+against active listings with usable normalized midpoint salaries. Recency fades
+linearly from 100 for a new listing to 0 at 60 days old.
+
+The saved browser profile supplies target titles, preferred categories,
+preferred locations, and preferred contract types. A matching preference scores
+100 for that factor; an explicit non-match scores 0. An empty preference is
+neutral at 50, so a user can personalize only the dimensions they care about.
+Missing salary or an unparseable posting date scores 0 for the affected factor.
+This score is a recommendation signal, not a prediction of hiring success.
+
+## Listing lifecycle
+
+New or observed listings are active. A listing becomes inactive when its last
+observation is older than `ADZUNA_STALE_AFTER_DAYS`; the cleanup step records
+`inactive_at`. A later ingestion can reactivate it and refresh `last_seen_at`.
+The same synchronization step deletes inactive listings after
+`ADZUNA_MAX_INACTIVE_DAYS_OLD` days (default 7), or active listings not seen for
+`ADZUNA_MAX_LAST_SEEN_DAYS_GAP` days (default 21) as a safety-net. Deletion
+removes the current `Listing` row and is tracked in `IngestionRun.jobs_deleted`;
+it is not an application status.
 
 ## Current tradeoffs
 
@@ -126,153 +155,3 @@ deployment is configured accordingly.
 - The API and scheduler share one process, which is convenient locally but needs deployment discipline when scaling horizontally.
 - Environment configuration is loaded from `.env`; secrets should not be committed.
 - Pipeline tests exist, while frontend/API integration and backend deployment hardening remain ongoing work.
-
-# Architecture
-
-## Overview
-
-The project is organized into a layered system whose core analytical engine is already largely complete.
-
-The main architectural layers are:
-
-- data pipeline: the operational core for collecting, cleaning, normalizing, and analyzing job data
-- database layer: the persistence layer for listings and salary insight snapshots
-- backend: the application/API interface for exposing processed results
-- frontend: the presentation layer for end-user access and dashboards
-- data: raw and bronze storage for source traceability
-
-## The mature core: data pipeline
-
-The data pipeline is the strongest and most complete part of the repository. It is responsible for the full transformation sequence from source payload to analytical output.
-
-The current pipeline flow is:
-
-1. job data is fetched from a source provider or mock data source
-2. the raw payload is saved as a bronze snapshot
-3. the bronze JSON is loaded into pandas
-4. the dataset is cleaned and normalized
-5. salary values are standardized and midpoint values are produced
-6. transformed records are written to the listings table
-7. descriptive salary statistics are calculated
-8. a snapshot of analytics is stored in the salary_insights table
-
-This workflow is executed by [data_pipeline/services/pipeline.py](../data_pipeline/services/pipeline.py).
-
-## Component responsibilities
-
-### Data ingestion and storage
-
-The ingestion and storage layer is responsible for:
-
-- fetching job records from Adzuna or repository fixture data
-- saving immutable raw payloads to bronze storage
-- preserving source records for auditing and debugging
-
-Relevant implementation areas include:
-
-- [data_pipeline/clients](../data_pipeline/clients)
-- [data_pipeline/storage](../data_pipeline/storage)
-
-### Cleaning and normalization
-
-The cleaning and transformation layer ensures records are structurally consistent and ready for analysis. It handles:
-
-- missing-value cleanup
-- nested object flattening
-- location normalization
-- salary standardization
-- dtype enforcement
-
-This logic lives primarily in:
-
-- [data_pipeline/processing/clean.py](../data_pipeline/processing/clean.py)
-- [data_pipeline/processing/transform.py](../data_pipeline/processing/transform.py)
-
-### Statistical analysis
-
-The statistics engine calculates descriptive metrics and distribution-based summaries for job salary data. It supports:
-
-- mean, median, min, max, standard deviation
-- p25, p50, p75 quartiles
-- IQR and outlier detection
-- range and variance summaries
-
-This logic is implemented in:
-
-- [data_pipeline/processing/statistics.py](../data_pipeline/processing/statistics.py)
-
-### Database layer
-
-The database layer defines the canonical persisted representation of job data and analytics snapshots.
-
-Key persistence objects include:
-
-- Listing: normalized job listings
-- SalaryInsight: statistical summary snapshots tied to a run or analysis version
-
-Defined in:
-
-- [data_pipeline/database/models.py](../data_pipeline/database/models.py)
-- [data_pipeline/database/connection.py](../data_pipeline/database/connection.py)
-
-### Backend layer
-
-The backend acts as the API-facing layer over the processed project data. It is currently lightweight but is meant to serve the cleaned pipeline output to the frontend or other consumers.
-
-Current implementation:
-
-- [backend/main.py](../backend/main.py)
-
-### Frontend layer
-
-The frontend is a React/Vite interface that is intended to display job analytics and allow user interaction with the processed dataset. It is still under active development.
-
-## Data-flow architecture
-
-The repository currently follows this conceptual flow:
-
-```text
-Source data
-  -> bronze/raw storage
-  -> cleaning and transformation
-  -> SQLite listings
-  -> salary statistics
-  -> salary insight snapshots
-  -> backend API
-  -> frontend UI
-```
-
-## Design strengths
-
-The current architecture is strong for a project at this stage because it keeps the following concerns separated:
-
-- source acquisition
-- data storage
-- transformation
-- database persistence
-- analytics
-- API access
-- UI presentation
-
-This separation makes the pipeline easy to test, debug, and extend.
-
-## Current limitations
-
-The project is not yet a fully finalized production system. Key areas still evolving include:
-
-- API contract standardization in the backend
-- UI route structure and dashboard design in the frontend
-- environment configuration for non-local deployments
-- operational automation and deployment scaffolding
-
-## Recommendation for future work
-
-As the application matures, the team should formalize:
-
-- database schema documentation
-- endpoint contract documentation
-- environment variable documentation
-- deployment process documentation
-- frontend-to-backend integration patterns
-
-The pipeline, however, is sufficiently mature that it should be considered the backbone of the project and documented as such.

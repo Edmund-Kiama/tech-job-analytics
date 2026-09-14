@@ -32,19 +32,21 @@ Create a local `.env` file at the repository root. `data_pipeline/config.py` loa
 
 ### Adzuna configuration
 
-| Variable                  | Required for live ingestion | Default                          |
-| ------------------------- | --------------------------- | -------------------------------- |
-| `ADZUNA_APP_ID`           | Yes                         | none                             |
-| `ADZUNA_APP_KEY`          | Yes                         | none                             |
-| `ADZUNA_COUNTRY`          | No                          | `gb`                             |
-| `ADZUNA_BASE_URL`         | No                          | `https://api.adzuna.com/v1/api`  |
-| `ADZUNA_RESULTS_PER_PAGE` | No                          | consumed by client configuration |
-| `ADZUNA_MAX_JOBS`         | No                          | unlimited in `run_pipeline`      |
-| `ADZUNA_MAX_PAGES`        | Yes for scheduled ingestion | used as the scheduler page limit |
-| `ADZUNA_SORT_BY`          | No                          | consumed by client configuration |
-| `ADZUNA_MAX_DAYS_OLD`     | No                          | consumed by client configuration |
-| `ADZUNA_STALE_AFTER_DAYS` | No                          | `14`                             |
-| `ADZUNA_ANALYSIS_VERSION` | Yes for scheduled ingestion | passed to the insight snapshot   |
+| Variable                        | Required for live ingestion | Default                          |
+| ------------------------------- | --------------------------- | -------------------------------- |
+| `ADZUNA_APP_ID`                 | Yes                         | none                             |
+| `ADZUNA_APP_KEY`                | Yes                         | none                             |
+| `ADZUNA_COUNTRY`                | No                          | `gb`                             |
+| `ADZUNA_BASE_URL`               | No                          | `https://api.adzuna.com/v1/api`  |
+| `ADZUNA_RESULTS_PER_PAGE`       | No                          | consumed by client configuration |
+| `ADZUNA_MAX_JOBS`               | No                          | unlimited in `run_pipeline`      |
+| `ADZUNA_MAX_PAGES`              | Yes for scheduled ingestion | used as the scheduler page limit |
+| `ADZUNA_SORT_BY`                | No                          | consumed by client configuration |
+| `ADZUNA_MAX_DAYS_OLD`           | No                          | consumed by client configuration |
+| `ADZUNA_STALE_AFTER_DAYS`       | No                          | `14`                             |
+| `ADZUNA_MAX_INACTIVE_DAYS_OLD`  | No                          | `7`                              |
+| `ADZUNA_MAX_LAST_SEEN_DAYS_GAP` | No                          | `21`                             |
+| `ADZUNA_ANALYSIS_VERSION`       | Yes for scheduled ingestion | passed to the insight snapshot   |
 
 For local work, keep credentials out of source control. A minimal configuration looks like:
 
@@ -55,6 +57,8 @@ ADZUNA_APP_KEY=your-app-key
 ADZUNA_MAX_PAGES=3
 ADZUNA_ANALYSIS_VERSION=2.3
 ADZUNA_STALE_AFTER_DAYS=14
+ADZUNA_MAX_INACTIVE_DAYS_OLD=7
+ADZUNA_MAX_LAST_SEEN_DAYS_GAP=21
 CORS_ORIGINS=http://localhost:5173
 ```
 
@@ -84,7 +88,7 @@ flowchart TD
 
 Use the orchestrator in [`data_pipeline/services/pipeline.py`](../data_pipeline/services/pipeline.py) from a script, Python shell, or scheduler. It fetches Adzuna data, writes a bronze snapshot, transforms records, synchronizes listings and history, saves a salary insight, and records run counters.
 
-The scheduler invokes this same flow daily at 02:00 UTC when the backend is running.
+The scheduler invokes this same flow daily at 02:00 UTC when the backend is running. Each run can mark old listings inactive and delete listings that have exceeded their retention window; see [data-flow.md](data-flow.md#listing-lifecycle).
 
 ### Mock data
 

@@ -30,6 +30,9 @@ The pipeline is already substantially complete. It includes the following implem
 - location and salary normalization
 - listing database persistence
 - salary insight generation and storage
+- listing lifecycle management, including stale inactivation and retention deletion
+- explainable job prioritization and personal-fit scoring
+- application-tracking fields stored on the canonical listing
 - repeated-run safety and snapshot creation logic
 - coverage through a dedicated automated test suite
 
@@ -44,10 +47,11 @@ The full execution path is:
 3. save a bronze snapshot of the source payload
 4. load the bronze JSON into pandas
 5. clean and normalize the records
-6. persist the cleaned listings
-7. compute salary statistics
-8. produce and save one salary insight snapshot
-9. return a summary of the run
+6. persist the cleaned listings and history observations
+7. mark stale listings inactive and delete expired listings
+8. compute salary statistics
+9. produce and save one salary insight snapshot
+10. return a summary of the run, including inserted, updated, inactivated, and deleted counts
 
 ## Major modules
 
@@ -100,8 +104,31 @@ Key files:
 
 Persisted entities include:
 
-- Listing
+- Listing, including lifecycle timestamps and application-tracking fields
+- ListingHistory, one observation per ingestion run
+- IngestionRun, operational status and row/lifecycle counters
 - SalaryInsight
+
+### Listing lifecycle
+
+`Listing.is_active` describes whether the record is currently considered live.
+The pipeline refreshes `last_seen_at` and reactivates records observed again.
+`mark_stale_listings` marks active records inactive after
+`ADZUNA_STALE_AFTER_DAYS` (default 14) and records `inactive_at`.
+`delete_expired_listings` then removes inactive records older than
+`ADZUNA_MAX_INACTIVE_DAYS_OLD` (default 7), or active records not seen for more
+than `ADZUNA_MAX_LAST_SEEN_DAYS_GAP` (default 21). The deletion count is stored
+on `IngestionRun.jobs_deleted`.
+
+### Match scoring
+
+The prioritization service returns a 0-100 score built from salary percentile
+(25%), title relevance (25%), category (15%), location (10%), contract type
+(10%), salary completeness (10%), and recency (5%). The user's saved profile
+controls the title, category, location, and contract factors. Empty profile
+fields are neutral rather than penalized, and the response includes factor-level
+reasons. This recommendation score is distinct from the application tracker's
+manual `user_priority` value of 1, 2, or 3.
 
 ### Services
 

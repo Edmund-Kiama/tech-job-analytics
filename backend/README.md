@@ -99,7 +99,40 @@ All fields are optional. `user_priority` must be between `1` and `3`.
 `application_status` is optional at schema-validation time, but the tracker
 accepts only the statuses listed below. Dates are ISO 8601 datetimes.
 
+`user_priority` is the user's custom score for organizing tracked jobs: `1` is
+low, `2` is medium, and `3` is high. It is stored on the listing, is independent
+of the recommendation `priority_score`, and does not change the match score.
+The applications list excludes `NEW` jobs when no status filter is supplied and
+can filter and sort by this user priority. Setting `SAVED` or `APPLIED` also
+records `saved_at` or `applied_at` when that timestamp is not already present.
+Notes and follow-up dates are persisted on the same listing record.
+
 ### Analytics
+
+### Job match scoring
+
+`GET /analytics/prioritization` and
+`GET /analytics/prioritization/{job_id}` calculate an explainable score from 0
+to 100 for active listings. The score is the weighted sum of these factors:
+
+| Factor              | Weight | Behavior                                                                        |
+| ------------------- | ------ | ------------------------------------------------------------------------------- |
+| Salary              | 25%    | Percentile of the listing's normalized midpoint among active reference salaries |
+| Title relevance     | 25%    | Exact title 100, phrase match 90, token overlap 85/70/50, otherwise 0           |
+| Category relevance  | 15%    | Matches a preferred category or scores neutral when no preference is set        |
+| Location            | 10%    | Matches a preferred location or scores neutral when no preference is set        |
+| Contract type       | 10%    | Matches a preferred contract type or scores neutral when no preference is set   |
+| Salary completeness | 10%    | 100 for both salary bounds, 50 for one, 0 for neither                           |
+| Recency             | 5%     | Fades linearly from 100 on the posting date to 0 at 60 days                     |
+
+The personal-fit portion comes from the saved profile fields
+`target_titles`, `preferred_categories`, `preferred_locations`, and
+`preferred_contract_types`. A matching preference gives 100 for that factor, a
+non-match gives 0, and an empty preference gives a neutral 50. Missing salary
+or invalid posting dates score 0 for their respective factors. The API also
+returns each factor's raw score, weighted points, weight, and explanation. The
+result is labeled `HIGH` at 75 or above, `MEDIUM` from 50 through 74.99, and
+`LOW` below 50. The scoring algorithm is versioned in the response.
 
 Analytics routes are under `/analytics`. They currently use a flexible response
 model while the individual payload contracts are being stabilized. The JSON

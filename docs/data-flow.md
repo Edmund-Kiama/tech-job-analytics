@@ -46,7 +46,8 @@ sequenceDiagram
     Pipeline->>Pipeline: transform_dataframe()
     Pipeline->>DB: upsert listings
     Pipeline->>DB: append ListingHistory
-    Pipeline->>DB: inactivate missing/stale listings
+    Pipeline->>DB: inactivate stale listings
+    Pipeline->>DB: delete expired listings
     Pipeline->>Stats: calculate salary statistics
     Stats-->>Pipeline: insight values
     Pipeline->>DB: save SalaryInsight
@@ -81,16 +82,37 @@ The processing layer converts nested source data into database columns, removes 
 
 Incoming records are deduplicated by `id`. Existing listings are updated and new listings are inserted with `first_seen_at`, `last_seen_at`, and `is_active=True`. Each observed record also creates a `ListingHistory` row linked to the current `IngestionRun`.
 
-Listings not present in the current run are marked inactive. The stale-listing job also marks active records inactive when `last_seen_at` is older than `ADZUNA_STALE_AFTER_DAYS`. Records are retained for history rather than deleted.
+## Listing lifecycle
+
+Incoming records are deduplicated by `id`. Existing listings are updated and new
+listings are inserted with `first_seen_at`, `last_seen_at`, and `is_active=True`.
+Each observed record also creates a `ListingHistory` row linked to the current
+`IngestionRun`.
+
+The lifecycle has three distinct states:
+
+1. **Active:** a listing is newly inserted or observed by ingestion. Its
+   `last_seen_at` is refreshed and a previously inactive listing is reactivated.
+2. **Inactive:** an active listing whose `last_seen_at` is older than
+   `ADZUNA_STALE_AFTER_DAYS` (default 14) is marked inactive and receives an
+   `inactive_at` timestamp. Inactive listings remain queryable when requested and
+   are retained temporarily for operational history.
+3. **Deleted:** the synchronization cleanup removes inactive listings whose
+   inactive age exceeds `ADZUNA_MAX_INACTIVE_DAYS_OLD` (default 7). As a safety
+   net, an active listing not seen for `ADZUNA_MAX_LAST_SEEN_DAYS_GAP` (default 21) is also deleted. The `IngestionRun.jobs_deleted` counter records this
+   removal. Deletion removes the current listing row; it is separate from the
+   application status such as `REJECTED` or `ARCHIVED`.
+
+The lifecycle cleanup runs as part of `run_pipeline()`. A listing can move from
+inactive back to active if it is seen again before the deletion step.
 
 ```mermaid
 stateDiagram-v2
     [*] --> Active: first seen
     Active --> Active: seen in ingestion
-    Active --> Inactive: missing from run
     Active --> Inactive: older than stale threshold
     Inactive --> Active: seen again
-    Inactive --> [*]: retained in database
+    Inactive --> [*]: retention window expires
 ```
 
 ### 5. Salary analysis

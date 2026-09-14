@@ -40,8 +40,11 @@ flowchart LR
 - Immutable timestamped bronze payloads
 - DataFrame cleaning, flattening, and salary normalization
 - Current listing synchronization with inactive/stale lifecycle handling
+- Inactive-listing retention and deletion during synchronization
 - Listing observation history per ingestion run
 - Salary insight snapshots with distribution and outlier statistics
+- Explainable job match scoring based on salary, role, profile preferences, and recency
+- Application tracking with user-controlled priority, status, notes, and follow-ups
 - Daily scheduled ingestion at 02:00 UTC when the backend process is running
 - FastAPI endpoints for jobs, application tracking, analytics, health, and ingestion monitoring
 - React/Vite frontend build, lint, typecheck, and development workflow
@@ -54,9 +57,15 @@ The pipeline and its test suite provide the project’s most established core. T
 ## Important boundaries
 
 - `data_pipeline` owns ingestion, transformation, database synchronization, and persisted salary analysis.
-- `backend` owns HTTP concerns, serialization, filtering, application tracking, and API-facing analytics queries.
+- `backend` owns HTTP concerns, serialization, filtering, application tracking, match-score queries, and API-facing analytics queries.
 - `frontend` owns presentation and client interaction.
 - `data/bronze` is source lineage and should not be treated as the canonical current dataset; the database is the serving store.
+
+## Product behavior references
+
+- Job match scoring and personal fit are described in [backend/README.md](../backend/README.md#job-match-scoring).
+- Application tracking and the separate user priority are described in [backend/README.md](../backend/README.md#applications).
+- Active, inactive, and deleted listing lifecycle behavior is described in [data-flow.md](data-flow.md#listing-lifecycle).
 
 ## Verification commands
 

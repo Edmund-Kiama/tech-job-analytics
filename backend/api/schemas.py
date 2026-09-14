@@ -139,6 +139,7 @@ class IngestionRunResponse(BaseModel):
     rows_after_cleaning: int
     jobs_inserted: int
     jobs_updated: int
+    jobs_deleted: int
     jobs_inactivated: int
     salary_insight_id: Optional[int] = None
     bronze_path: Optional[str] = None

@@ -144,6 +144,7 @@ Important lifecycle definition:
 - An active job is a listing that the ingestion pipeline still sees as part of the live dataset for the current market snapshot.
 - An inactive job is a listing that is no longer present in the newest ingestion run or that has not been seen within the stale threshold configured by the pipeline.
 - In other words, active means "currently live in the dataset," while inactive means "no longer considered current or available".
+- An inactive listing is retained temporarily, then deleted by pipeline cleanup after the configured inactive retention period (7 days by default). A safety-net rule deletes an active listing that has not been seen for 21 days by default. Deletion removes the current listing record and is separate from application statuses.
 
 What it shows:
 
@@ -163,9 +164,9 @@ When does a job become inactive and how long before it is removed from the local
 
 - During every ingestion run, the pipeline first marks any job that is still present as active and refreshes its `last_seen_at` timestamp.
 - If a job is missing from the latest source data, it is marked inactive immediately.
-- The pipeline also runs a stale-listing check that marks active listings inactive when `last_seen_at` is older than the configured `ADZUNA_STALE_AFTER_DAYS` threshold.
-- In this project, the default retention window is 14 days, so a job that has not been seen for around two weeks is marked inactive.
-- The record is not deleted immediately; it is retained in the database for history and analytics, even after being marked inactive.
+- The pipeline also runs a stale-listing check that marks active listings inactive when `last_seen_at` is older than the configured `ADZUNA_STALE_AFTER_DAYS` threshold (14 days by default).
+- Inactive records are retained for the `ADZUNA_MAX_INACTIVE_DAYS_OLD` period (7 days by default), then deleted during pipeline cleanup.
+- An active record that is not seen for `ADZUNA_MAX_LAST_SEEN_DAYS_GAP` (21 days by default) is deleted as a safety net.
 
 Why it matters:
 
@@ -177,7 +178,17 @@ These three analytics views work together as a decision-making stack: salary ans
 
 ### Using recommendations
 
-The **Recommended** view uses a saved profile containing target titles, preferred locations, preferred categories, and preferred contract types. The backend returns a ranked list with a priority score and, where available, the factors explaining the ranking.
+The **Recommended** view uses a saved profile containing target titles, preferred locations, preferred categories, and preferred contract types. The backend returns a ranked list with a priority score and the factors explaining the ranking.
+
+The match score is a 0-100 weighted score: salary percentile (25%), title
+relevance (25%), category fit (15%), location fit (10%), contract-type fit (10%),
+salary completeness (10%), and recency (5%). Salary is compared with active
+listings that have normalized midpoint salaries. Title matching rewards exact
+and phrase matches, while profile preferences score 100 for a match, 0 for a
+non-match, and a neutral 50 when that preference is empty. Recency decreases
+linearly until a 60-day-old listing scores 0. Missing salary or posting dates
+affect only their relevant factor. The API exposes the factor scores and
+explanations, and labels totals `HIGH`, `MEDIUM`, or `LOW`.
 
 The profile is stored in the browser's `localStorage`, so it is local to the current browser/device. It is not an account profile and is not synchronized between devices.
 
@@ -187,7 +198,7 @@ Application information is stored through the backend API. A job can have one of
 
 `NEW`, `SAVED`, `APPLIED`, `INTERVIEW`, `OFFER`, `REJECTED`, or `ARCHIVED`.
 
-The tracker also supports a user priority, notes, an application date, and a follow-up date. **Applications** provides a filtered view of tracked jobs, while **Follow-ups** surfaces overdue and upcoming actions within the configured reminder window.
+The tracker also supports a user priority, notes, an application date, and a follow-up date. The user priority is a separate custom score from 1 (low) to 3 (high): it helps organize applications and filter/sort the tracker, but it does not affect the recommendation match score. Changing status to `SAVED` or `APPLIED` records the corresponding timestamp if it has not already been set. **Applications** provides a filtered view of tracked jobs, while **Follow-ups** surfaces overdue and upcoming actions within the configured reminder window.
 
 ### Checking data health
 

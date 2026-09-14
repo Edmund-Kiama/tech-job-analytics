@@ -185,6 +185,7 @@ function formatSalary(job) {
     return `Up to £${Number(job.salary_max).toLocaleString()}`;
   return null;
 }
+
 function date(value) {
   return value ? new Date(value).toLocaleString() : 'Not available';
 }

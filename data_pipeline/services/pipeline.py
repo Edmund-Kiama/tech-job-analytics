@@ -18,6 +18,7 @@ from data_pipeline.database.models import (
     ListingHistory,
 )
 from data_pipeline.database.scheduler.job_lifecycle import (
+    delete_expired_listings,
     mark_stale_listings,
 )
 from data_pipeline.processing.statistics import (
@@ -212,6 +213,7 @@ def run_pipeline(
             ingestion_run.jobs_inserted = sync_result["inserted"]
             ingestion_run.jobs_updated = sync_result["updated"]
             ingestion_run.jobs_inactivated = sync_result["inactivated"]
+            ingestion_run.jobs_deleted = sync_result["deleted"]
             ingestion_run.salary_insight_id = salary_insight.id
             ingestion_run.bronze_path = str(bronze_path)
 
@@ -227,6 +229,7 @@ def run_pipeline(
                 "listing_count": rows_after_cleaning,
                 "jobs_inserted": sync_result["inserted"],
                 "jobs_updated": sync_result["updated"],
+                "jobs_deleted": sync_result["deleted"],
                 "jobs_inactivated": sync_result["inactivated"],
                 "salary_insight_id": salary_insight.id,
                 "analysis_version": effective_analysis_version,
@@ -272,6 +275,10 @@ def _save_cleaned_listings(
 
     inserted = 0
     updated = 0
+    inactivated = 0
+
+    max_inactive_days = int(getattr(settings, "ADZUNA_MAX_INACTIVE_DAYS_OLD", 7))
+    last_seen_days_gap = int(getattr(settings, "ADZUNA_MAX_LAST_SEEN_DAYS_GAP", 21))
 
     if incoming_ids:
         # Bulk-fetch existing listings to prevent N+1 queries
@@ -348,18 +355,18 @@ def _save_cleaned_listings(
         session.add(listing_snapshot)
 
     # Inactivate listings missing from this run
-    active_listings = (
-        session.execute(select(Listing).where(Listing.is_active.is_(True)))
-        .scalars()
-        .all()
-    )
+    # active_listings = (
+    #     session.execute(select(Listing).where(Listing.is_active.is_(True)))
+    #     .scalars()
+    #     .all()
+    # )
 
-    inactivated = 0
-    for listing in active_listings:
-        if listing.id not in incoming_ids:
-            listing.is_active = False
-            listing.inactive_at = seen_at
-            inactivated += 1
+    # inactivated = 0
+    # for listing in active_listings:
+    #     if listing.id not in incoming_ids:
+    #         listing.is_active = False
+    #         listing.inactive_at = seen_at
+    #         inactivated += 1
 
     # Time-decay check for any additional stale listings
     if stale_after_days is not None:
@@ -368,8 +375,17 @@ def _save_cleaned_listings(
             stale_after_days=stale_after_days,
             now=seen_at,
         )
+
         if isinstance(extra_inactivated, int):
             inactivated += extra_inactivated
+
+    # Delete listings that have exceeded their retention window
+    deleted = delete_expired_listings(
+        session=session,
+        now=seen_at,
+        inactive_after_days=max_inactive_days,
+        active_after_days=last_seen_days_gap,
+    )
 
     session.flush()
 
@@ -377,6 +393,7 @@ def _save_cleaned_listings(
         "inserted": inserted,
         "updated": updated,
         "inactivated": inactivated,
+        "deleted": deleted,
     }
 
 

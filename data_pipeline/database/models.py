@@ -227,6 +227,12 @@ class IngestionRun(Base):
         default=0,
     )
 
+    jobs_deleted: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
     salary_insight_id: Mapped[Optional[int]] = mapped_column(
         Integer,
         nullable=True,

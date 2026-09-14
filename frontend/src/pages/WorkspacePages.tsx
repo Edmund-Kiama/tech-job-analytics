@@ -363,7 +363,7 @@ export function DataHealthPage() {
                 {status.error_message}
               </p>
             )}
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
               <Metric
                 label="Rows fetched"
                 value={status?.rows_fetched ?? '—'}

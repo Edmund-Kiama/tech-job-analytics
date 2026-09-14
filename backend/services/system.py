@@ -40,6 +40,7 @@ def ingestion_status(session: Session) -> dict:
         "rows_after_cleaning": latest_run.rows_after_cleaning,
         "jobs_inserted": latest_run.jobs_inserted,
         "jobs_updated": latest_run.jobs_updated,
+        "jobs_deleted": latest_run.jobs_deleted,
         "jobs_inactivated": latest_run.jobs_inactivated,
         "salary_insight_id": latest_run.salary_insight_id,
         "analysis_version": latest_run.analysis_version,

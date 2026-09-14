@@ -4,8 +4,10 @@ import { getJob, getJobPrioritization } from '../api';
 import ApplicationTracker from '../components/ApplicationTracker';
 import JobApplicationActions from '../components/JobApplicationActions';
 import Loader from '../components/Loader';
+import { useParams } from 'react-router-dom';
 
-export default function JobDetailPage({ jobId, onBack }) {
+export default function JobDetailPage({ onBack }) {
+  const { jobId } = useParams();
   const [job, setJob] = useState(null);
   const [prioritization, setPrioritization] = useState(null);
   const [error, setError] = useState(null);

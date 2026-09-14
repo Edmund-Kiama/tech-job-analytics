@@ -79,7 +79,6 @@ export default function App() {
 }
 
 function AppContent() {
-  const { jobId = '' } = useParams();
   const routerNavigate = useNavigate();
   const location = useLocation();
   const [theme, setTheme] = useTheme();
@@ -229,7 +228,6 @@ function AppContent() {
           path="/jobs/:jobId"
           element={
             <JobDetailPage
-              jobId={decodeURIComponent(jobId)}
               onBack={() => navigate(-1)}
             />
           }
